@@ -332,6 +332,8 @@ class MainWindow(QMainWindow):
 
     def on_search_error(self, error_message: str):
         """Slot to handle search errors."""
+        self.btn_search.setEnabled(True)
+        self.search_worker = None
         QMessageBox.warning(self, "Search Error", error_message)
 
     def on_result_double_clicked(self, item: QListWidgetItem):

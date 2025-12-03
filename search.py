@@ -79,8 +79,11 @@ class AISearchEngine:
             if not cap.isOpened():
                 continue
 
-            fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            if fps <= 0:
+                fps = 25.0
             step = max(1, int(round(fps * sample_interval_s)))
+            min_frame_gap = int(round(fps * 2.0))  # Minimum 2 seconds between matches
             frame_idx = 0
 
             # For image mode, precompute query image features
@@ -97,31 +100,31 @@ class AISearchEngine:
                 text_features = self._compute_text_features(query_data)
 
             last_match_frame = -float('inf')
-            min_frame_gap = int(round(fps * 2.0))  # Minimum 2 seconds between matches
 
             while True:
                 ok, frame = cap.read()
                 if not ok:
                     break
 
-                if frame_idx % step == 0 and (frame_idx - last_match_frame) >= min_frame_gap:
-                    timestamp_ms = int((frame_idx / fps) * 1000)
-                    score = 0.0
-                    is_match = False
+                if frame_idx % step == 0:
+                    if (frame_idx - last_match_frame) >= min_frame_gap:
+                        timestamp_ms = int((frame_idx / fps) * 1000)
+                        score = 0.0
+                        is_match = False
 
-                    if mode == 'text':
-                        score = self._search_text(frame, text_features)
-                        is_match = score >= score_threshold
-                    elif mode == 'image':
-                        score = self._search_image(frame, query_features)
-                        is_match = score >= score_threshold
-                    elif mode == 'category':
-                        score = self._search_category(frame, query_data)
-                        is_match = score >= score_threshold
+                        if mode == 'text':
+                            score = self._search_text(frame, text_features)
+                            is_match = score >= score_threshold
+                        elif mode == 'image':
+                            score = self._search_image(frame, query_features)
+                            is_match = score >= score_threshold
+                        elif mode == 'category':
+                            score = self._search_category(frame, query_data)
+                            is_match = score >= score_threshold
 
-                    if is_match:
-                        last_match_frame = frame_idx
-                        yield (video_path, timestamp_ms, score)
+                        if is_match:
+                            last_match_frame = frame_idx
+                            yield (video_path, timestamp_ms, score)
 
                 frame_idx += 1
 
