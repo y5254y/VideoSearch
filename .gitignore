@@ -264,3 +264,15 @@ paket-files/
 *.zip
 *.yaml
 *.swp
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.eggs/
+
+# AI model files
+*.pt
+*.pth
+*.onnx
