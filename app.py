@@ -307,7 +307,8 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, self._t('no_videos'), self._t('need_text'))
                 return
         else:
-            return
+            # This should never happen as one radio button should always be selected
+            assert False, "No search mode selected"
 
         self.list_results.clear()
         

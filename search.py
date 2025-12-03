@@ -286,14 +286,23 @@ class AISearchEngine:
                                 conf = float(box.conf[0])
                                 class_name = self._yolo_model.names[cls_id].lower()
                                 
-                                # Check for exact match or partial match
-                                if class_name == query_category_lower or query_category_lower in class_name:
-                                    if conf >= confidence_threshold:
-                                        pos_ms = int((frame_idx / fps) * 1000)
-                                        yield (video_path, pos_ms, conf)
-                                        last_match_frame = frame_idx
-                                        found_match = True
-                                        break
+                                # Check for exact match or word boundary match
+                                # Split class name into words and check if query matches any word
+                                class_words = class_name.replace('-', ' ').replace('_', ' ').split()
+                                query_words = query_category_lower.replace('-', ' ').replace('_', ' ').split()
+                                
+                                is_match = (
+                                    class_name == query_category_lower or
+                                    query_category_lower in class_words or
+                                    any(qw in class_words for qw in query_words)
+                                )
+                                
+                                if is_match and conf >= confidence_threshold:
+                                    pos_ms = int((frame_idx / fps) * 1000)
+                                    yield (video_path, pos_ms, conf)
+                                    last_match_frame = frame_idx
+                                    found_match = True
+                                    break
                     except Exception:
                         pass
                 
