@@ -145,7 +145,8 @@ class AISearchEngine:
             try:
                 query_image = Image.open(image_path).convert("RGB")
                 query_embedding = self._encode_image(query_image)
-            except Exception:
+            except (FileNotFoundError, OSError, ValueError):
+                # Handle file not found, corrupt image, or invalid format
                 return
             if query_embedding is None:
                 return
@@ -198,14 +199,18 @@ class AISearchEngine:
                                     if frame_idx - last_match_frame >= sample_interval_frames * 2:
                                         yield (video_path, timestamp_ms, similarity)
                                         last_match_frame = frame_idx
-                        except Exception:
+                        except (RuntimeError, ValueError, cv2.error):
+                            # Skip frame on CLIP/tensor/cv2 errors
                             pass
 
                     elif mode == 'category':
                         # YOLO object detection
                         try:
                             results = self.yolo_model(frame, verbose=False)
+                            match_found_in_frame = False
                             for result in results:
+                                if match_found_in_frame:
+                                    break
                                 if result.boxes is not None:
                                     for box in result.boxes:
                                         cls_id = int(box.cls[0])
@@ -216,11 +221,10 @@ class AISearchEngine:
                                             if frame_idx - last_match_frame >= sample_interval_frames * 2:
                                                 yield (video_path, timestamp_ms, confidence)
                                                 last_match_frame = frame_idx
+                                                match_found_in_frame = True
                                                 break
-                                    else:
-                                        continue
-                                    break
-                        except Exception:
+                        except (RuntimeError, ValueError):
+                            # Skip frame on YOLO inference errors
                             pass
 
                 frame_idx += 1
