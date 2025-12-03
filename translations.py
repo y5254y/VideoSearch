@@ -1,0 +1,63 @@
+# -*- coding: utf-8 -*-
+"""
+Centralized translations for VideoSearch application.
+Keep translations in a separate module to simplify maintenance and possible
+future internationalization work.
+"""
+
+TRANSLATIONS = {
+    'zh': {
+        'title': 'VideoSearch - 原型',
+        'select_videos': '选择视频',
+        'selected_videos': '已选择的视频：',
+        'select_images': '选择查询图片',
+        'query_images': '查询图片：',
+        'select_category': '选择类别：',
+        'text_query': '文字查询：',
+        'search': '搜索',
+        'results': '结果：',
+        'play': '播放',
+        'pause': '暂停',
+        'stop': '停止',
+        'no_videos': '未选择视频',
+        'no_videos_detail': '请先选择一个或多个视频进行搜索。',
+        'match_at': '匹配 @',
+        'file_dialog_videos': '选择视频文件',
+        'file_dialog_images': '选择图片文件',
+        'language': '语言',
+        'categories': ['人', '汽车', '自行车', '狗', '猫'],
+        'search_mode_image': '图片搜索',
+        'search_mode_category': '类别搜索',
+        'search_mode_text': '文字搜索',
+        'need_images': '请先选择一张或多张查询图片。',
+        'need_category': '请先输入或选择一个类别。',
+        'need_text': '请先输入查询文字。'
+    },
+    'en': {
+        'title': 'VideoSearch - Prototype',
+        'select_videos': 'Select Videos',
+        'selected_videos': 'Selected Videos:',
+        'select_images': 'Select Query Images',
+        'query_images': 'Query Images:',
+        'select_category': 'Select Category:',
+        'text_query': 'Text Query:',
+        'search': 'Search',
+        'results': 'Results:',
+        'play': 'Play',
+        'pause': 'Pause',
+        'stop': 'Stop',
+        'no_videos': 'No videos',
+        'no_videos_detail': 'Please select one or more videos to search.',
+        'match_at': 'match @',
+        'file_dialog_videos': 'Select video files',
+        'file_dialog_images': 'Select image files',
+        'language': 'Language',
+        'categories': ['person', 'car', 'bicycle', 'dog', 'cat'],
+        'search_mode_image': 'Image',
+        'search_mode_category': 'Category',
+        'search_mode_text': 'Text',
+        'need_images': 'Please select one or more query images.',
+        'need_category': 'Please enter or select a category.',
+        'need_text': 'Please enter text to search for.'
+    }
+}
