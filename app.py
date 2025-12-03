@@ -8,14 +8,36 @@ from PyQt6.QtWidgets import (
     QRadioButton, QButtonGroup
 )
 from PyQt6.QtGui import QPixmap, QImage, QIcon
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QUrl, QThread, pyqtSignal
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 
 # import search utilities
-from search import compute_query_descriptors, image_search_for_video, format_ms
+from search import AISearchEngine, format_ms
 # import translations
 from translations import TRANSLATIONS
+
+
+class SearchWorker(QThread):
+    """Background worker thread for AI search operations."""
+    match_found = pyqtSignal(tuple)  # (path, ms, score)
+    finished_signal = pyqtSignal()
+    error_signal = pyqtSignal(str)
+
+    def __init__(self, searcher, videos, query_data, mode, parent=None):
+        super().__init__(parent)
+        self.searcher = searcher
+        self.videos = videos
+        self.query_data = query_data
+        self.mode = mode
+
+    def run(self):
+        try:
+            for result in self.searcher.search(self.videos, self.query_data, self.mode):
+                self.match_found.emit(result)
+            self.finished_signal.emit()
+        except Exception as e:
+            self.error_signal.emit(str(e))
 
 
 class MainWindow(QMainWindow):
@@ -32,6 +54,10 @@ class MainWindow(QMainWindow):
 
         self.videos = []  # list of video file paths
         self.images = []  # list of image file paths
+
+        # Initialize AI search engine
+        self.searcher = AISearchEngine()
+        self.worker = None
 
         # Main layout
         central = QWidget()
@@ -230,7 +256,7 @@ class MainWindow(QMainWindow):
                 self.list_images.addItem(f)
 
     def on_search(self):
-        # Placeholder search implementation
+        """Start AI-based search in background thread."""
         if not self.videos:
             QMessageBox.warning(self, self._t('no_videos'), self._t('no_videos_detail'))
             return
@@ -240,72 +266,58 @@ class MainWindow(QMainWindow):
             if not self.images:
                 QMessageBox.warning(self, self._t('no_videos'), self._t('need_images'))
                 return
+            mode = 'image'
+            query_data = self.images
         elif self.rb_category.isChecked():
             query_category = self.combo_category.currentText().strip()
             if not query_category:
                 QMessageBox.warning(self, self._t('no_videos'), self._t('need_category'))
                 return
+            mode = 'category'
+            query_data = query_category
         elif self.rb_text.isChecked():
             query_text = self.input_text.text().strip()
             if not query_text:
                 QMessageBox.warning(self, self._t('no_videos'), self._t('need_text'))
                 return
-
-        query_images = self.images
-        query_category = self.combo_category.currentText().strip()
-        query_text = self.input_text.text().strip()
+            mode = 'text'
+            query_data = query_text
+        else:
+            return
 
         self.list_results.clear()
 
-        # If image mode, perform simple ORB-based image search in videos
-        if self.rb_image.isChecked():
-            try:
-                import cv2
-            except Exception:
-                QMessageBox.warning(self, "OpenCV missing", "OpenCV (cv2) is required for image search. Please install opencv-python.")
-                return
+        # Disable search button while processing
+        self.btn_search.setEnabled(False)
 
-            # compute descriptors for query images
-            query_descs = compute_query_descriptors(self.images)
-            if not query_descs:
-                QMessageBox.warning(self, "No valid query images", self._t('need_images'))
-                return
+        # Create and start worker thread
+        self.worker = SearchWorker(self.searcher, self.videos, query_data, mode)
+        self.worker.match_found.connect(self.on_match_found)
+        self.worker.finished_signal.connect(self.on_search_finished)
+        self.worker.error_signal.connect(self.on_search_error)
+        self.worker.start()
 
-            # disable search button while processing
-            self.btn_search.setEnabled(False)
-            try:
-                for video_path in self.videos:
-                    matches = image_search_for_video(video_path, query_descs)
-                    if matches:
-                        # take earliest match
-                        pos_ms = matches[0][0]
-                        item = QListWidgetItem()
-                        item.setText(f"{os.path.basename(video_path)} -- {self._t('match_at')} {format_ms(pos_ms)}")
-                        item.setData(Qt.ItemDataRole.UserRole, (video_path, pos_ms))
+    def on_match_found(self, data):
+        """Handle a match found by the search worker."""
+        video_path, timestamp_ms, score = data
+        item = QListWidgetItem()
+        item.setText(f"{os.path.basename(video_path)} -- {self._t('match_at')} {format_ms(timestamp_ms)} (score: {score:.2f})")
+        item.setData(Qt.ItemDataRole.UserRole, (video_path, timestamp_ms))
 
-                        thumb = self._get_video_thumbnail(video_path)
-                        if thumb is not None:
-                            item.setIcon(QIcon(thumb))
-                        self.list_results.addItem(item)
-                    else:
-                        # optionally show no-match entry (commented out)
-                        pass
-            finally:
-                self.btn_search.setEnabled(True)
-            return
+        # Add thumbnail at the match timestamp
+        thumb = self._get_video_thumbnail(video_path, timestamp_ms)
+        if thumb is not None:
+            item.setIcon(QIcon(thumb))
+        self.list_results.addItem(item)
 
-        # Mock results for other modes: for each video return a fake hit at 10 seconds
-        for video_path in self.videos:
-            item = QListWidgetItem()
-            item.setText(f"{os.path.basename(video_path)} -- {self._t('match_at')} 00:00:10")
-            item.setData(Qt.ItemDataRole.UserRole, (video_path, 10_000))
+    def on_search_finished(self):
+        """Handle search completion."""
+        self.btn_search.setEnabled(True)
 
-            # try to add a small thumbnail if opencv is available
-            thumb = self._get_video_thumbnail(video_path)
-            if thumb is not None:
-                item.setIcon(QIcon(thumb))
-
-            self.list_results.addItem(item)
+    def on_search_error(self, msg):
+        """Handle search error."""
+        QMessageBox.warning(self, "Search Error", msg)
+        self.btn_search.setEnabled(True)
 
     def on_result_double_clicked(self, item: QListWidgetItem):
         data = item.data(Qt.ItemDataRole.UserRole)
@@ -318,11 +330,13 @@ class MainWindow(QMainWindow):
         self.player.play()
         self.player.setPosition(position_ms)
 
-    def _get_video_thumbnail(self, path):
-        # Attempt to capture the first frame using opencv if available
+    def _get_video_thumbnail(self, path, pos_ms=0):
+        """Capture a frame from video at the specified position for thumbnail."""
         try:
             import cv2
             cap = cv2.VideoCapture(path)
+            if pos_ms > 0:
+                cap.set(cv2.CAP_PROP_POS_MSEC, pos_ms)
             ok, frame = cap.read()
             cap.release()
             if not ok or frame is None:
