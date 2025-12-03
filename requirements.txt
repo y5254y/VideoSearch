@@ -1,6 +1,6 @@
-torch
-transformers
-ultralytics
-opencv-python
-pillow
-PyQt6
+torch>=2.0.0
+transformers>=4.30.0
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+PyQt6>=6.5.0

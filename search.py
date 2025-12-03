@@ -274,7 +274,10 @@ class AISearchEngine:
                     try:
                         results = self._yolo_model(frame, verbose=False)
                         
+                        found_match = False
                         for result in results:
+                            if found_match:
+                                break
                             if result.boxes is None:
                                 continue
                             
@@ -283,15 +286,14 @@ class AISearchEngine:
                                 conf = float(box.conf[0])
                                 class_name = self._yolo_model.names[cls_id].lower()
                                 
-                                if query_category_lower in class_name or class_name in query_category_lower:
+                                # Check for exact match or partial match
+                                if class_name == query_category_lower or query_category_lower in class_name:
                                     if conf >= confidence_threshold:
                                         pos_ms = int((frame_idx / fps) * 1000)
                                         yield (video_path, pos_ms, conf)
                                         last_match_frame = frame_idx
+                                        found_match = True
                                         break
-                            else:
-                                continue
-                            break
                     except Exception:
                         pass
                 
