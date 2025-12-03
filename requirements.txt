@@ -1,0 +1,6 @@
+torch
+transformers
+ultralytics
+opencv-python
+pillow
+PyQt6

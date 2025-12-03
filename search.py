@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 Search utilities for VideoSearch application.
-Provides functions for computing ORB descriptors of query images,
-scanning videos for matches, and formatting timestamps.
-This module intentionally keeps OpenCV imports local to functions so
-the application can still start without OpenCV for other features.
+Provides AISearchEngine class for AI-powered video search using CLIP and YOLO.
+This module intentionally keeps imports local to functions so
+the application can still start without dependencies for other features.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Generator, Optional
 
 
 def format_ms(ms: int) -> str:
@@ -18,95 +17,284 @@ def format_ms(ms: int) -> str:
     return f"{h:02d}:{m:02d}:{sec:02d}"
 
 
-def compute_query_descriptors(image_paths: List[str]):
+class AISearchEngine:
     """
-    Compute ORB descriptors for each image in image_paths.
-    Returns a list of tuples (path, keypoints, descriptors).
-    If OpenCV is not available or no valid descriptors found, returns [].
+    AI-powered search engine using CLIP for text/image search and YOLO for category/object search.
     """
-    try:
+    
+    def __init__(self):
+        """Initialize the AISearchEngine. Models are loaded lazily on first use."""
+        self._clip_model = None
+        self._clip_processor = None
+        self._yolo_model = None
+        self._device = None
+    
+    def _ensure_clip_loaded(self):
+        """Lazy load CLIP model and processor."""
+        if self._clip_model is None:
+            import torch
+            from transformers import CLIPModel, CLIPProcessor
+            
+            self._device = "cuda" if torch.cuda.is_available() else "cpu"
+            self._clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+            self._clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+            self._clip_model.to(self._device)
+            self._clip_model.eval()
+    
+    def _ensure_yolo_loaded(self):
+        """Lazy load YOLO model."""
+        if self._yolo_model is None:
+            from ultralytics import YOLO
+            self._yolo_model = YOLO("yolov8n.pt")
+    
+    def _get_clip_image_embedding(self, image):
+        """Get CLIP embedding for an image (PIL Image or numpy array)."""
+        import torch
+        from PIL import Image
+        import numpy as np
+        
+        self._ensure_clip_loaded()
+        
+        if isinstance(image, np.ndarray):
+            # Convert BGR (OpenCV) to RGB
+            image = Image.fromarray(image[:, :, ::-1])
+        
+        inputs = self._clip_processor(images=image, return_tensors="pt")
+        inputs = {k: v.to(self._device) for k, v in inputs.items()}
+        
+        with torch.no_grad():
+            image_features = self._clip_model.get_image_features(**inputs)
+            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        
+        return image_features
+    
+    def _get_clip_text_embedding(self, text: str):
+        """Get CLIP embedding for text."""
+        import torch
+        
+        self._ensure_clip_loaded()
+        
+        inputs = self._clip_processor(text=[text], return_tensors="pt", padding=True)
+        inputs = {k: v.to(self._device) for k, v in inputs.items()}
+        
+        with torch.no_grad():
+            text_features = self._clip_model.get_text_features(**inputs)
+            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        
+        return text_features
+    
+    def search(
+        self,
+        video_paths: List[str],
+        mode: str,
+        query_images: Optional[List[str]] = None,
+        query_text: Optional[str] = None,
+        query_category: Optional[str] = None,
+        sample_interval_s: float = 1.0,
+        similarity_threshold: float = 0.25,
+        confidence_threshold: float = 0.5
+    ) -> Generator[Tuple[str, int, float], None, None]:
+        """
+        Search videos for matches based on the specified mode.
+        
+        Args:
+            video_paths: List of video file paths to search.
+            mode: One of 'image', 'text', or 'category'.
+            query_images: List of query image paths (for 'image' mode).
+            query_text: Text query string (for 'text' mode).
+            query_category: Category/object name to detect (for 'category' mode).
+            sample_interval_s: Interval between sampled frames in seconds.
+            similarity_threshold: Minimum similarity score for CLIP matches.
+            confidence_threshold: Minimum confidence for YOLO detections.
+        
+        Yields:
+            Tuples of (video_path, timestamp_ms, score) for each match found.
+        """
         import cv2
-    except Exception:
-        return []
-
-    orb = cv2.ORB_create(500)
-    query_descs = []
-    for p in image_paths:
-        try:
-            img = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
-            if img is None:
-                continue
-            kps, desc = orb.detectAndCompute(img, None)
-            if desc is None:
-                continue
-            query_descs.append((p, kps, desc))
-        except Exception:
-            continue
-    return query_descs
-
-
-def image_search_for_video(video_path: str, query_descs, sample_interval_s: float = 1.0,
-                           match_ratio_thresh: float = 0.15, min_good_matches: int = 10):
-    """
-    Scan video frames at approximately sample_interval_s and try to match any query descriptor
-    using ORB + BF kNN + ratio test. Returns list of tuples (position_ms, query_path, num_good_matches).
-    """
-    try:
+        
+        if mode == 'image':
+            yield from self._search_by_image(
+                video_paths, query_images, sample_interval_s, similarity_threshold
+            )
+        elif mode == 'text':
+            yield from self._search_by_text(
+                video_paths, query_text, sample_interval_s, similarity_threshold
+            )
+        elif mode == 'category':
+            yield from self._search_by_category(
+                video_paths, query_category, sample_interval_s, confidence_threshold
+            )
+    
+    def _search_by_image(
+        self,
+        video_paths: List[str],
+        query_images: List[str],
+        sample_interval_s: float,
+        similarity_threshold: float
+    ) -> Generator[Tuple[str, int, float], None, None]:
+        """Search videos using query images with CLIP similarity."""
         import cv2
-    except Exception:
-        return []
-
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        return []
-
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
-    step = max(1, int(round(fps * sample_interval_s)))
-    # create BF matcher for Hamming (ORB)
-    try:
-        bf = cv2.BFMatcher_create(cv2.NORM_HAMMING, crossCheck=False)
-    except Exception:
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
-
-    matches_found = []
-    frame_idx = 0
-    orb = cv2.ORB_create(500)
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
-        if frame_idx % step == 0:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            kps_f, desc_f = orb.detectAndCompute(gray, None)
-            if desc_f is None:
+        import torch
+        from PIL import Image
+        
+        self._ensure_clip_loaded()
+        
+        # Pre-compute embeddings for all query images
+        query_embeddings = []
+        for img_path in query_images:
+            try:
+                img = Image.open(img_path).convert('RGB')
+                embedding = self._get_clip_image_embedding(img)
+                query_embeddings.append(embedding)
+            except Exception:
+                continue
+        
+        if not query_embeddings:
+            return
+        
+        # Stack all query embeddings for batch comparison
+        query_stack = torch.cat(query_embeddings, dim=0)
+        
+        for video_path in video_paths:
+            cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened():
+                continue
+            
+            fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+            step = max(1, int(round(fps * sample_interval_s)))
+            frame_idx = 0
+            last_match_frame = -1
+            skip_frames = int(round(fps * 2.0))
+            
+            while True:
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                
+                if frame_idx % step == 0 and frame_idx > last_match_frame + skip_frames:
+                    try:
+                        frame_embedding = self._get_clip_image_embedding(frame)
+                        
+                        # Compute similarity with all query images (match any)
+                        similarities = torch.matmul(query_stack, frame_embedding.T).squeeze(-1)
+                        max_similarity = similarities.max().item()
+                        
+                        if max_similarity >= similarity_threshold:
+                            pos_ms = int((frame_idx / fps) * 1000)
+                            yield (video_path, pos_ms, max_similarity)
+                            last_match_frame = frame_idx
+                    except Exception:
+                        pass
+                
                 frame_idx += 1
+            
+            cap.release()
+    
+    def _search_by_text(
+        self,
+        video_paths: List[str],
+        query_text: str,
+        sample_interval_s: float,
+        similarity_threshold: float
+    ) -> Generator[Tuple[str, int, float], None, None]:
+        """Search videos using text query with CLIP."""
+        import cv2
+        import torch
+        
+        self._ensure_clip_loaded()
+        
+        # Pre-compute text embedding
+        text_embedding = self._get_clip_text_embedding(query_text)
+        
+        for video_path in video_paths:
+            cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened():
                 continue
-
-            for (qpath, kps_q, desc_q) in query_descs:
-                try:
-                    knn = bf.knnMatch(desc_q, desc_f, k=2)
-                except Exception:
-                    continue
-                good = 0
-                for m_n in knn:
-                    if len(m_n) < 2:
-                        continue
-                    m, n = m_n
-                    if m.distance < 0.75 * n.distance:
-                        good += 1
-                if good >= min_good_matches:
-                    denom = max(1, min(len(desc_q), len(desc_f)))
-                    ratio = good / denom
-                    if ratio >= match_ratio_thresh:
-                        pos_ms = int((frame_idx / fps) * 1000)
-                        matches_found.append((pos_ms, qpath, good))
-                        # skip ahead to avoid duplicate nearby detections
-                        skip_frames = int(round(fps * 2.0))
-                        frame_idx += skip_frames
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-                        break
-        frame_idx += 1
-
-    cap.release()
-    matches_found.sort(key=lambda x: x[0])
-    return matches_found
+            
+            fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+            step = max(1, int(round(fps * sample_interval_s)))
+            frame_idx = 0
+            last_match_frame = -1
+            skip_frames = int(round(fps * 2.0))
+            
+            while True:
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                
+                if frame_idx % step == 0 and frame_idx > last_match_frame + skip_frames:
+                    try:
+                        frame_embedding = self._get_clip_image_embedding(frame)
+                        
+                        similarity = torch.matmul(text_embedding, frame_embedding.T).item()
+                        
+                        if similarity >= similarity_threshold:
+                            pos_ms = int((frame_idx / fps) * 1000)
+                            yield (video_path, pos_ms, similarity)
+                            last_match_frame = frame_idx
+                    except Exception:
+                        pass
+                
+                frame_idx += 1
+            
+            cap.release()
+    
+    def _search_by_category(
+        self,
+        video_paths: List[str],
+        query_category: str,
+        sample_interval_s: float,
+        confidence_threshold: float
+    ) -> Generator[Tuple[str, int, float], None, None]:
+        """Search videos for objects matching the category using YOLO."""
+        import cv2
+        
+        self._ensure_yolo_loaded()
+        
+        # Normalize category name for comparison
+        query_category_lower = query_category.lower().strip()
+        
+        for video_path in video_paths:
+            cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened():
+                continue
+            
+            fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+            step = max(1, int(round(fps * sample_interval_s)))
+            frame_idx = 0
+            last_match_frame = -1
+            skip_frames = int(round(fps * 2.0))
+            
+            while True:
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                
+                if frame_idx % step == 0 and frame_idx > last_match_frame + skip_frames:
+                    try:
+                        results = self._yolo_model(frame, verbose=False)
+                        
+                        for result in results:
+                            if result.boxes is None:
+                                continue
+                            
+                            for box in result.boxes:
+                                cls_id = int(box.cls[0])
+                                conf = float(box.conf[0])
+                                class_name = self._yolo_model.names[cls_id].lower()
+                                
+                                if query_category_lower in class_name or class_name in query_category_lower:
+                                    if conf >= confidence_threshold:
+                                        pos_ms = int((frame_idx / fps) * 1000)
+                                        yield (video_path, pos_ms, conf)
+                                        last_match_frame = frame_idx
+                                        break
+                            else:
+                                continue
+                            break
+                    except Exception:
+                        pass
+                
+                frame_idx += 1
+            
+            cap.release()
