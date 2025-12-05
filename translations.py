@@ -31,7 +31,14 @@ TRANSLATIONS = {
         'search_mode_text': '文字搜索',
         'need_images': '请先选择一张或多张查询图片。',
         'need_category': '请先输入或选择一个类别。',
-        'need_text': '请先输入查询文字。'
+        'need_text': '请先输入查询文字。',
+        'score_threshold': '相似度阈值',
+        'search_log': '搜索日志',
+        'searching_video': '正在搜索 {name} ({idx}/{total})...',
+        'found_match': '在 {name} {sec}s 发现匹配 (分数={score:.2f})',
+        'search_finished': '搜索完成。',
+        'search_error_title': '搜索错误',
+        'stop_search': '停止搜索'
     },
     'en': {
         'title': 'VideoSearch - Prototype',
@@ -58,6 +65,13 @@ TRANSLATIONS = {
         'search_mode_text': 'Text',
         'need_images': 'Please select one or more query images.',
         'need_category': 'Please enter or select a category.',
-        'need_text': 'Please enter text to search for.'
+        'need_text': 'Please enter text to search for.',
+        'score_threshold': 'Similarity Threshold',
+        'search_log': 'Search Log',
+        'searching_video': 'Searching {name} ({idx}/{total})...',
+        'found_match': 'Found match in {name} at {sec}s (score={score:.2f})',
+        'search_finished': 'Search finished.',
+        'search_error_title': 'Search Error',
+        'stop_search': 'Stop Search'
     }
 }
