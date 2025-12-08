@@ -2,17 +2,27 @@
 import sys
 import os
 import json
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QListWidget, QListWidgetItem, QFileDialog, QHBoxLayout, QVBoxLayout,
     QLineEdit, QComboBox, QMessageBox, QSizePolicy, QSplitter,
     QRadioButton, QButtonGroup, QSlider, QProgressBar, QTextBrowser
 )
-from PyQt6.QtGui import QPixmap, QImage, QIcon
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtMultimediaWidgets import QVideoWidget
+from PySide6.QtGui import QPixmap, QImage, QIcon
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtMultimediaWidgets import QVideoWidget
 from player_widget import PlayerWidget
+from main_ui import Ui_MainWindow
+from PySide6 import QtWidgets
+
+# qt-material will be applied at application start if available
+try:
+    import qt_material
+    _HAS_QT_MATERIAL = True
+except Exception:
+    qt_material = None
+    _HAS_QT_MATERIAL = False
 
 # import search utilities
 from search import AISearchEngine, format_ms
@@ -22,20 +32,16 @@ from translations import TRANSLATIONS
 from search_worker import SearchWorker
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
+        self.setupUi(self)
+
         # translations for Chinese (zh) and English (en)
         self.translations = TRANSLATIONS
 
         # default language
         self.lang = 'zh'
-
-        self.setWindowTitle(self._t('title'))
-        self.resize(1000, 700)
-
-        self.videos = []  # list of video file paths
-        self.images = []  # list of image file paths
 
         # AI search engine instance
         self.search_engine = AISearchEngine()
@@ -45,165 +51,66 @@ class MainWindow(QMainWindow):
         self.config_path = os.path.join(os.path.expanduser('~'), '.videosearch_config.json')
         self.config = self._load_config()
 
-        # Main layout
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QHBoxLayout(central)
-
-        # Left: controls and results
-        left = QWidget()
-        left_layout = QVBoxLayout(left)
-
-        # Language selector
-        lang_layout = QHBoxLayout()
-        lbl_lang = QLabel(self._t('language') + ':')
-        self.lang_combo = QComboBox()
-        # order: zh, en
+        # wire up UI elements to existing logic
+        # language combo
         self.lang_combo.addItem('中文 (简体)')
         self.lang_combo.addItem('English')
         self.lang_combo.setCurrentIndex(0 if self.lang == 'zh' else 1)
         self.lang_combo.currentIndexChanged.connect(self.change_language)
-        lang_layout.addWidget(lbl_lang)
-        lang_layout.addWidget(self.lang_combo)
-        left_layout.addLayout(lang_layout)
-        self.lbl_lang = lbl_lang
 
-        # Search mode (only one of image/category/text allowed)
-        mode_layout = QHBoxLayout()
-        self.rb_image = QRadioButton(self._t('search_mode_image'))
-        self.rb_category = QRadioButton(self._t('search_mode_category'))
-        self.rb_text = QRadioButton(self._t('search_mode_text'))
-        self.mode_group = QButtonGroup()
-        self.mode_group.addButton(self.rb_image)
-        self.mode_group.addButton(self.rb_category)
-        self.mode_group.addButton(self.rb_text)
-        # connect all toggles so UI updates when switching between any radios
+        # radio buttons
         self.rb_image.toggled.connect(self.update_search_mode_ui)
         self.rb_category.toggled.connect(self.update_search_mode_ui)
         self.rb_text.toggled.connect(self.update_search_mode_ui)
-        mode_layout.addWidget(self.rb_image)
-        mode_layout.addWidget(self.rb_category)
-        mode_layout.addWidget(self.rb_text)
-        left_layout.addLayout(mode_layout)
 
-
-        # Video selection
-        self.btn_select_videos = QPushButton(self._t('select_videos'))
-        self.btn_select_videos.clicked.connect(self.select_videos)
-        left_layout.addWidget(self.btn_select_videos)
-
-        self.list_videos = QListWidget()
-        left_layout.addWidget(QLabel(self._t('selected_videos')))
-        # keep reference to the label so it can be updated on language change
-        self.lbl_selected_videos = left_layout.itemAt(left_layout.count()-1).widget()
-        left_layout.addWidget(self.list_videos)
-        # double click selected video to play
+        # list double clicks
         self.list_videos.itemDoubleClicked.connect(self.on_video_double_clicked)
+        self.list_results.itemDoubleClicked.connect(self.on_result_double_clicked)
 
-        # Image selection
-        self.btn_select_images = QPushButton(self._t('select_images'))
+        # buttons
+        self.btn_select_videos.clicked.connect(self.select_videos)
         self.btn_select_images.clicked.connect(self.select_images)
-        left_layout.addWidget(self.btn_select_images)
+        self.btn_search.clicked.connect(self.on_search)
+        self.btn_stop_search.clicked.connect(self.on_stop_search)
 
-        self.list_images = QListWidget()
-        left_layout.addWidget(QLabel(self._t('query_images')))
-        self.lbl_query_images = left_layout.itemAt(left_layout.count()-1).widget()
-        left_layout.addWidget(self.list_images)
-
-        # Category and text inputs
-        left_layout.addWidget(QLabel(self._t('select_category')))
-        self.lbl_select_category = left_layout.itemAt(left_layout.count()-1).widget()
-        self.combo_category = QComboBox()
-        self.combo_category.setEditable(True)
-        # example categories (will be populated by change_language)
-        for c in self._t('categories'):
-            self.combo_category.addItem(c)
-        left_layout.addWidget(self.combo_category)
-
-        left_layout.addWidget(QLabel(self._t('text_query')))
-        self.lbl_text_query = left_layout.itemAt(left_layout.count()-1).widget()
-        self.input_text = QLineEdit()
-        left_layout.addWidget(self.input_text)
-
-        # Score slider
-        slider_layout = QHBoxLayout()
-        self.lbl_score = QLabel(f"{self._t('score_threshold')}: 0.25")
-        self.slider = QSlider(Qt.Orientation.Horizontal)
+        # slider
         self.slider.setRange(0, 100)
-        # set initial score from config (default 85)
         init_score = int(self.config.get('score', 85))
         self.slider.setValue(init_score)
         self.slider.setTickInterval(5)
         self.slider.valueChanged.connect(self._on_slider_changed)
-        slider_layout.addWidget(self.lbl_score)
-        slider_layout.addWidget(self.slider)
-        self.lbl_score.setText(f"{self._t('score_threshold')}: {self.slider.value()/100:.2f}")
-        left_layout.addLayout(slider_layout)
 
-        # Search and Stop buttons
-        btns_layout = QHBoxLayout()
-        self.btn_search = QPushButton(self._t('search'))
-        self.btn_search.clicked.connect(self.on_search)
-        btns_layout.addWidget(self.btn_search)
+        # results list
+        # category combo editable
+        self.combo_category.setEditable(True)
+        for c in self._t('categories'):
+            self.combo_category.addItem(c)
 
-        self.btn_stop_search = QPushButton(self._t('stop_search'))
-        self.btn_stop_search.clicked.connect(self.on_stop_search)
-        self.btn_stop_search.setEnabled(False)
-        btns_layout.addWidget(self.btn_stop_search)
-
-        left_layout.addLayout(btns_layout)
-
-        # Results
-        left_layout.addWidget(QLabel(self._t('results')))
-        self.lbl_results = left_layout.itemAt(left_layout.count()-1).widget()
-        self.list_results = QListWidget()
-        self.list_results.itemDoubleClicked.connect(self.on_result_double_clicked)
-        left_layout.addWidget(self.list_results)
-
-        # Right: video player
-        right = QWidget()
-        right_layout = QVBoxLayout(right)
-
-        # embed player widget (guard against initialization errors so UI isn't blank)
+        # player: if main_ui promoted the widget, playerContainer will already be a PlayerWidget
         try:
-            self.player_widget = PlayerWidget(self)
-            right_layout.addWidget(self.player_widget)
-        except Exception as e:
-            # show fallback label so UI remains usable and surface error to console
+            if isinstance(self.playerContainer, PlayerWidget):
+                self.player_widget = self.playerContainer
+            else:
+                try:
+                    self.player_widget = PlayerWidget(self.playerContainer)
+                    layout = self.playerContainer.layout() or QtWidgets.QVBoxLayout(self.playerContainer)
+                    layout.addWidget(self.player_widget)
+                except Exception as e:
+                    self.player_widget = None
+                    self.playerContainer_layout_fallback = QtWidgets.QVBoxLayout(self.playerContainer)
+                    self.playerContainer_layout_fallback.addWidget(QtWidgets.QLabel(f"Player unavailable: {e}"))
+                    print("PlayerWidget initialization failed:", e)
+        except Exception:
             self.player_widget = None
-            fallback = QLabel(f"Player unavailable: {e}")
-            right_layout.addWidget(fallback)
-            print("PlayerWidget initialization failed:", e)
 
-        # Search progress bar and log
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 1)
-        right_layout.addWidget(self.progress_bar)
-
-        self.txt_log = QTextBrowser()
-        self.txt_log.setPlainText("")
-        # make log smaller so video player remains visible
-        self.txt_log.setFixedHeight(140)
-        right_layout.addWidget(self.txt_log)
-
-        # layout.addWidget(splitter)
-        # default search mode: image
+        # set initial UI states
         self.rb_image.setChecked(True)
-        # apply initial UI state for search modes
         self.update_search_mode_ui()
-
-        # Put left and right in splitter and add to main layout
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(left)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 2)
-
-        layout.addWidget(splitter)
-        # default search mode: image
-        self.rb_image.setChecked(True)
-        # apply initial UI state for search modes
-        self.update_search_mode_ui()
+        # apply translations for initial language
+        try:
+            self.change_language(self.lang_combo.currentIndex())
+        except Exception:
+            pass
 
     def _load_config(self):
         try:
@@ -243,9 +150,14 @@ class MainWindow(QMainWindow):
         self.btn_select_videos.setText(self._t('select_videos'))
         self.btn_select_images.setText(self._t('select_images'))
         self.btn_search.setText(self._t('search'))
-        self.btn_play.setText(self._t('play'))
-        self.btn_pause.setText(self._t('pause'))
-        self.btn_stop.setText(self._t('stop'))
+        # player buttons live in player_widget; update if available
+        if getattr(self, 'player_widget', None) is not None:
+            try:
+                self.player_widget.playButton.setText(self._t('play'))
+                self.player_widget.pauseButton.setText(self._t('pause'))
+                self.player_widget.stopButton.setText(self._t('stop'))
+            except Exception:
+                pass
         self.btn_stop_search.setText(self._t('stop_search'))
 
         self.lbl_lang.setText(self._t('language') + ':')
@@ -575,6 +487,12 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    # apply qt-material theme if available
+    try:
+        if _HAS_QT_MATERIAL and qt_material is not None:
+            qt_material.apply_stylesheet(app, theme='light_blue.xml', invert_secondary=True)
+    except Exception:
+        pass
     w = MainWindow()
     w.show()
     sys.exit(app.exec())

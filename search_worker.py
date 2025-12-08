@@ -5,7 +5,7 @@ signals back to the UI thread. Kept in a separate module to keep UI
 code (app.py) smaller.
 """
 from typing import List, Optional
-from PyQt6.QtCore import QThread, pyqtSignal
+from PySide6.QtCore import QThread, Signal
 import os
 
 # import the search engine interface (must exist in search.py)
@@ -15,11 +15,11 @@ from search import AISearchEngine
 class SearchWorker(QThread):
     """Worker thread to run AI search without freezing the UI."""
 
-    match_found = pyqtSignal(str, int, float)  # video_path, timestamp_ms, score
-    error = pyqtSignal(str)  # error message
-    finished_search = pyqtSignal()  # search completed
-    progress = pyqtSignal(object)  # structured progress: ('video', completed_count, total) or ('frame', video_idx, processed, total_samples, total_videos)
-    message = pyqtSignal(object)  # structured message for i18n: (key, params_dict) or plain str
+    match_found = Signal(str, int, float)  # video_path, timestamp_ms, score
+    error = Signal(str)  # error message
+    finished_search = Signal()  # search completed
+    progress = Signal(object)  # structured progress: ('video', completed_count, total) or ('frame', video_idx, processed, total_samples, total_videos)
+    message = Signal(object)  # structured message for i18n: (key, params_dict) or plain str
 
     def __init__(
         self,
