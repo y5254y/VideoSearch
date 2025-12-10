@@ -1,0 +1,83 @@
+/* Basic Fluent Design QSS */
+
+/* Color Palette */
+/* Direct color values for Qt QSS compatibility */
+
+/* Base Styles */
+QWidget {
+    background-color: #FFFFFF;
+    color: #202124;
+    font-family: "Segoe UI", "Microsoft Yahei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* Window and Panels */
+QMainWindow, QDialog, QWidget[class="panel"] {
+    background-color: #F8F9FA;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #4285F4;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background-color: #3367D6;
+}
+
+QPushButton:pressed {
+    background-color: #2A5DB0;
+}
+
+QPushButton:disabled {
+    background-color: #DADCE0;
+    color: #9AA0A6;
+}
+
+/* Input Fields */
+QLineEdit, QComboBox {
+    background-color: #FFFFFF;
+    color: #202124;
+    border: 2px solid #DADCE0;
+    border-radius: 12px;
+    padding: 10px 14px;
+}
+
+QLineEdit:focus, QComboBox:focus {
+    border-color: #4285F4;
+}
+
+/* Labels */
+QLabel {
+    color: #202124;
+}
+
+/* Lists and Tables */
+QListWidget, QTableWidget {
+    background-color: #FFFFFF;
+    border: 2px solid #DADCE0;
+    border-radius: 12px;
+    padding: 8px;
+}
+
+/* Sliders */
+QSlider {
+    background-color: transparent;
+}
+
+/* Progress Bars */
+QProgressBar {
+    background-color: #F1F3F4;
+    border-radius: 12px;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #4285F4;
+    border-radius: 10px;
+}

@@ -17,6 +17,7 @@
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
+      <!-- LEFT PANEL -->
       <widget class="QWidget" name="leftPanel">
        <layout class="QVBoxLayout" name="leftLayout">
         <item>
@@ -33,133 +34,158 @@
           </item>
          </layout>
         </item>
+        <!-- Collapsible header (selection) -->
         <item>
-         <layout class="QHBoxLayout" name="modeLayout">
+         <widget class="QPushButton" name="header_selection">
+          <property name="text">
+           <string>Selection</string>
+          </property>
+         </widget>
+        </item>
+        <!-- Selection container holds the selection controls -->
+        <item>
+         <widget class="QWidget" name="selectionContainer">
+          <layout class="QVBoxLayout" name="selectionLayout">
+           <item>
+            <layout class="QHBoxLayout" name="modeLayout">
+             <item>
+              <widget class="QRadioButton" name="rb_image">
+               <property name="text">
+                <string>Image</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="rb_category">
+               <property name="text">
+                <string>Category</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="rb_text">
+               <property name="text">
+                <string>Text</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btn_select_videos">
+             <property name="text">
+              <string>Select Videos</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_selected_videos">
+             <property name="text">
+              <string>Selected Videos</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QListWidget" name="list_videos"/>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btn_select_images">
+             <property name="text">
+              <string>Select Images</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_query_images">
+             <property name="text">
+              <string>Query Images</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QListWidget" name="list_images"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_select_category">
+             <property name="text">
+              <string>Select Category</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="combo_category"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_text_query">
+             <property name="text">
+              <string>Text Query</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="input_text"/>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="sliderLayout">
+             <item>
+              <widget class="QLabel" name="lbl_score">
+               <property name="text">
+                <string>Score Threshold: 0.25</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSlider" name="slider">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="btnsLayout">
+             <item>
+              <widget class="QPushButton" name="btn_search">
+               <property name="text">
+                <string>Search</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_stop_search">
+               <property name="text">
+                <string>Stop Search</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <!-- CENTER PANEL -->
+      <widget class="QWidget" name="centerPanel">
+       <layout class="QVBoxLayout" name="centerLayout">
+        <item>
+         <layout class="QHBoxLayout" name="centerHeaderLayout">
           <item>
-           <widget class="QRadioButton" name="rb_image">
+           <widget class="QLabel" name="lbl_results">
             <property name="text">
-             <string>Image</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="rb_category">
-            <property name="text">
-             <string>Category</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="rb_text">
-            <property name="text">
-             <string>Text</string>
+             <string>Results</string>
             </property>
            </widget>
           </item>
          </layout>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_select_videos">
-          <property name="text">
-           <string>Select Videos</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="lbl_selected_videos">
-          <property name="text">
-           <string>Selected Videos</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QListWidget" name="list_videos"/>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btn_select_images">
-          <property name="text">
-           <string>Select Images</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="lbl_query_images">
-          <property name="text">
-           <string>Query Images</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QListWidget" name="list_images"/>
-        </item>
-        <item>
-         <widget class="QLabel" name="lbl_select_category">
-          <property name="text">
-           <string>Select Category</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="combo_category"/>
-        </item>
-        <item>
-         <widget class="QLabel" name="lbl_text_query">
-          <property name="text">
-           <string>Text Query</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="input_text"/>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="sliderLayout">
-          <item>
-           <widget class="QLabel" name="lbl_score">
-            <property name="text">
-             <string>Score Threshold: 0.25</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSlider" name="slider">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="btnsLayout">
-          <item>
-           <widget class="QPushButton" name="btn_search">
-            <property name="text">
-             <string>Search</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_stop_search">
-            <property name="text">
-             <string>Stop Search</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QLabel" name="lbl_results">
-          <property name="text">
-           <string>Results</string>
-          </property>
-         </widget>
         </item>
         <item>
          <widget class="QListWidget" name="list_results"/>
         </item>
        </layout>
       </widget>
+      <!-- RIGHT PANEL -->
       <widget class="QWidget" name="rightPanel">
        <layout class="QVBoxLayout" name="rightLayout">
         <item>

@@ -17,8 +17,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel,
     QLineEdit, QListWidget, QListWidgetItem, QMainWindow,
-    QProgressBar, QRadioButton, QSizePolicy, QSlider,
-    QSplitter, QTextBrowser, QVBoxLayout, QWidget, QPushButton)
+    QProgressBar, QPushButton, QRadioButton, QSizePolicy,
+    QSlider, QSplitter, QTextBrowser, QVBoxLayout,
+    QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -52,118 +53,142 @@ class Ui_MainWindow(object):
 
         self.leftLayout.addLayout(self.langLayout)
 
+        self.header_selection = QPushButton(self.leftPanel)
+        self.header_selection.setObjectName(u"header_selection")
+
+        self.leftLayout.addWidget(self.header_selection)
+
+        self.selectionContainer = QWidget(self.leftPanel)
+        self.selectionContainer.setObjectName(u"selectionContainer")
+        self.selectionLayout = QVBoxLayout(self.selectionContainer)
+        self.selectionLayout.setObjectName(u"selectionLayout")
+        self.selectionLayout.setContentsMargins(0, 0, 0, 0)
         self.modeLayout = QHBoxLayout()
         self.modeLayout.setObjectName(u"modeLayout")
-        self.rb_image = QRadioButton(self.leftPanel)
+        self.rb_image = QRadioButton(self.selectionContainer)
         self.rb_image.setObjectName(u"rb_image")
 
         self.modeLayout.addWidget(self.rb_image)
 
-        self.rb_category = QRadioButton(self.leftPanel)
+        self.rb_category = QRadioButton(self.selectionContainer)
         self.rb_category.setObjectName(u"rb_category")
 
         self.modeLayout.addWidget(self.rb_category)
 
-        self.rb_text = QRadioButton(self.leftPanel)
+        self.rb_text = QRadioButton(self.selectionContainer)
         self.rb_text.setObjectName(u"rb_text")
 
         self.modeLayout.addWidget(self.rb_text)
 
 
-        self.leftLayout.addLayout(self.modeLayout)
+        self.selectionLayout.addLayout(self.modeLayout)
 
-        self.btn_select_videos = QPushButton(self.leftPanel)
+        self.btn_select_videos = QPushButton(self.selectionContainer)
         self.btn_select_videos.setObjectName(u"btn_select_videos")
 
-        self.leftLayout.addWidget(self.btn_select_videos)
+        self.selectionLayout.addWidget(self.btn_select_videos)
 
-        self.lbl_selected_videos = QLabel(self.leftPanel)
+        self.lbl_selected_videos = QLabel(self.selectionContainer)
         self.lbl_selected_videos.setObjectName(u"lbl_selected_videos")
 
-        self.leftLayout.addWidget(self.lbl_selected_videos)
+        self.selectionLayout.addWidget(self.lbl_selected_videos)
 
-        self.list_videos = QListWidget(self.leftPanel)
+        self.list_videos = QListWidget(self.selectionContainer)
         self.list_videos.setObjectName(u"list_videos")
 
-        self.leftLayout.addWidget(self.list_videos)
+        self.selectionLayout.addWidget(self.list_videos)
 
-        self.btn_select_images = QPushButton(self.leftPanel)
+        self.btn_select_images = QPushButton(self.selectionContainer)
         self.btn_select_images.setObjectName(u"btn_select_images")
 
-        self.leftLayout.addWidget(self.btn_select_images)
+        self.selectionLayout.addWidget(self.btn_select_images)
 
-        self.lbl_query_images = QLabel(self.leftPanel)
+        self.lbl_query_images = QLabel(self.selectionContainer)
         self.lbl_query_images.setObjectName(u"lbl_query_images")
 
-        self.leftLayout.addWidget(self.lbl_query_images)
+        self.selectionLayout.addWidget(self.lbl_query_images)
 
-        self.list_images = QListWidget(self.leftPanel)
+        self.list_images = QListWidget(self.selectionContainer)
         self.list_images.setObjectName(u"list_images")
 
-        self.leftLayout.addWidget(self.list_images)
+        self.selectionLayout.addWidget(self.list_images)
 
-        self.lbl_select_category = QLabel(self.leftPanel)
+        self.lbl_select_category = QLabel(self.selectionContainer)
         self.lbl_select_category.setObjectName(u"lbl_select_category")
 
-        self.leftLayout.addWidget(self.lbl_select_category)
+        self.selectionLayout.addWidget(self.lbl_select_category)
 
-        self.combo_category = QComboBox(self.leftPanel)
+        self.combo_category = QComboBox(self.selectionContainer)
         self.combo_category.setObjectName(u"combo_category")
 
-        self.leftLayout.addWidget(self.combo_category)
+        self.selectionLayout.addWidget(self.combo_category)
 
-        self.lbl_text_query = QLabel(self.leftPanel)
+        self.lbl_text_query = QLabel(self.selectionContainer)
         self.lbl_text_query.setObjectName(u"lbl_text_query")
 
-        self.leftLayout.addWidget(self.lbl_text_query)
+        self.selectionLayout.addWidget(self.lbl_text_query)
 
-        self.input_text = QLineEdit(self.leftPanel)
+        self.input_text = QLineEdit(self.selectionContainer)
         self.input_text.setObjectName(u"input_text")
 
-        self.leftLayout.addWidget(self.input_text)
+        self.selectionLayout.addWidget(self.input_text)
 
         self.sliderLayout = QHBoxLayout()
         self.sliderLayout.setObjectName(u"sliderLayout")
-        self.lbl_score = QLabel(self.leftPanel)
+        self.lbl_score = QLabel(self.selectionContainer)
         self.lbl_score.setObjectName(u"lbl_score")
 
         self.sliderLayout.addWidget(self.lbl_score)
 
-        self.slider = QSlider(self.leftPanel)
+        self.slider = QSlider(self.selectionContainer)
         self.slider.setObjectName(u"slider")
         self.slider.setOrientation(Qt.Orientation.Horizontal)
 
         self.sliderLayout.addWidget(self.slider)
 
 
-        self.leftLayout.addLayout(self.sliderLayout)
+        self.selectionLayout.addLayout(self.sliderLayout)
 
         self.btnsLayout = QHBoxLayout()
         self.btnsLayout.setObjectName(u"btnsLayout")
-        self.btn_search = QPushButton(self.leftPanel)
+        self.btn_search = QPushButton(self.selectionContainer)
         self.btn_search.setObjectName(u"btn_search")
 
         self.btnsLayout.addWidget(self.btn_search)
 
-        self.btn_stop_search = QPushButton(self.leftPanel)
+        self.btn_stop_search = QPushButton(self.selectionContainer)
         self.btn_stop_search.setObjectName(u"btn_stop_search")
 
         self.btnsLayout.addWidget(self.btn_stop_search)
 
 
-        self.leftLayout.addLayout(self.btnsLayout)
+        self.selectionLayout.addLayout(self.btnsLayout)
 
-        self.lbl_results = QLabel(self.leftPanel)
-        self.lbl_results.setObjectName(u"lbl_results")
 
-        self.leftLayout.addWidget(self.lbl_results)
-
-        self.list_results = QListWidget(self.leftPanel)
-        self.list_results.setObjectName(u"list_results")
-
-        self.leftLayout.addWidget(self.list_results)
+        self.leftLayout.addWidget(self.selectionContainer)
 
         self.splitter.addWidget(self.leftPanel)
+        self.centerPanel = QWidget(self.splitter)
+        self.centerPanel.setObjectName(u"centerPanel")
+        self.centerLayout = QVBoxLayout(self.centerPanel)
+        self.centerLayout.setObjectName(u"centerLayout")
+        self.centerLayout.setContentsMargins(0, 0, 0, 0)
+        self.centerHeaderLayout = QHBoxLayout()
+        self.centerHeaderLayout.setObjectName(u"centerHeaderLayout")
+        self.lbl_results = QLabel(self.centerPanel)
+        self.lbl_results.setObjectName(u"lbl_results")
+
+        self.centerHeaderLayout.addWidget(self.lbl_results)
+
+
+        self.centerLayout.addLayout(self.centerHeaderLayout)
+
+        self.list_results = QListWidget(self.centerPanel)
+        self.list_results.setObjectName(u"list_results")
+
+        self.centerLayout.addWidget(self.list_results)
+
+        self.splitter.addWidget(self.centerPanel)
         self.rightPanel = QWidget(self.splitter)
         self.rightPanel.setObjectName(u"rightPanel")
         self.rightLayout = QVBoxLayout(self.rightPanel)
@@ -197,6 +222,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         self.lbl_lang.setText(QCoreApplication.translate("MainWindow", u"Language:", None))
+        self.header_selection.setText(QCoreApplication.translate("MainWindow", u"Selection", None))
         self.rb_image.setText(QCoreApplication.translate("MainWindow", u"Image", None))
         self.rb_category.setText(QCoreApplication.translate("MainWindow", u"Category", None))
         self.rb_text.setText(QCoreApplication.translate("MainWindow", u"Text", None))
