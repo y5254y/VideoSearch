@@ -18,21 +18,21 @@
     <widget class="QWidget" name="controlsRow">
      <layout class="QHBoxLayout" name="controlsLayout">
       <item>
-       <widget class="PrimaryPushButton" name="playButton">
+       <widget class="QPushButton" name="playButton">
         <property name="text">
          <string>Play</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="PrimaryPushButton" name="pauseButton">
+       <widget class="QPushButton" name="pauseButton">
         <property name="text">
          <string>Pause</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="PrimaryPushButton" name="stopButton">
+       <widget class="QPushButton" name="stopButton">
         <property name="text">
          <string>Stop</string>
         </property>
@@ -73,18 +73,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>PrimaryPushButton</class>
-   <extends>QPushButton</extends>
-   <header>qfluentwidgets</header>
-  </customwidget>
-  <customwidget>
-   <class>QVideoWidget</class>
-   <extends>QWidget</extends>
-   <header>PyQt6.QtMultimediaWidgets</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>
