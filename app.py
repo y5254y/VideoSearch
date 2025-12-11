@@ -194,7 +194,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.title_bar.setObjectName("title_bar")
         
         # 设置标题栏高度和样式
-        self.title_bar.setFixedHeight(40)
+        self.title_bar.setFixedHeight(50)
         self.title_bar.setStyleSheet("""
             QWidget#title_bar {
                 background-color: #ffffff;
@@ -360,11 +360,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.btn_stop_search.setIcon(self.icons['stop_search'])
         self.btn_stop_search.setIconSize(QSize(16, 16))
         
-        # 设置清除按钮图标（清除按钮已被移除）
-        # if hasattr(self, 'btn_clear_videos'):
-        #     self.btn_clear_videos.setIcon(self.icons['stop'])
-        # if hasattr(self, 'btn_clear_images'):
-        #     self.btn_clear_images.setIcon(self.icons['stop'])
+
     
     def _optimize_left_panel_layout(self):
         """优化左侧面板的布局和控件样式"""

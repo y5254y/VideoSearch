@@ -7,7 +7,7 @@ future internationalization work.
 
 TRANSLATIONS = {
     'zh': {
-        'title': 'VideoSearch - 原型',
+        'title': '本地视频内容搜索',
         'select_videos': '选择视频',
         'selected_videos': '已选择的视频：',
         'select_images': '选择查询图片',
@@ -45,7 +45,7 @@ TRANSLATIONS = {
         'stop_search': '停止搜索'
     },
     'en': {
-        'title': 'VideoSearch - Prototype',
+        'title': 'LocalVideoSearch',
         'select_videos': 'Select Videos',
         'selected_videos': 'Selected Videos:',
         'select_images': 'Select Query Images',

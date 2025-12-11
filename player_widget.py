@@ -76,44 +76,14 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         except Exception:
             pass
 
-        # load icons will be provided by host app via set_icons; initialize to None
         self._icon_play = None
         self._icon_pause = None
         self._icon_stop = None
-
-        # set default icons (or text fallback) — will be overridden if set_icons called
-        try:
-            if self._icon_play and not self._icon_play.isNull():
-                self.playButton.setIcon(self._icon_play)
-                self.playButton.setIconSize(QSize(16, 16))
-                self.playButton.setText('')
-            else:
-                self.playButton.setText('▶')
-                self.playButton.setStyleSheet("color: white;")
-        except Exception:
-            pass
-        
-        try:
-            if self._icon_stop and not self._icon_stop.isNull():
-                self.stopButton.setIcon(self._icon_stop)
-                self.stopButton.setIconSize(QSize(14, 14))
-                self.stopButton.setText('')
-            else:
-                self.stopButton.setText('■')
-                self.stopButton.setStyleSheet("color: white;")
-        except Exception:
-            pass
-        
-        try:
-            if self._icon_pause and not self._icon_pause.isNull():
-                self.pauseButton.setIcon(self._icon_pause)
-                self.pauseButton.setIconSize(QSize(14, 14))
-                self.pauseButton.setText('')
-            else:
-                self.pauseButton.setText('❚❚')
-                self.pauseButton.setStyleSheet("color: white;")
-        except Exception:
-            pass
+        #self.playButton.setText('▶')
+        self.playButton.setStyleSheet("color: white;")
+        #self.stopButton.setText('■')
+        self.stopButton.setStyleSheet("color: white;")
+         
         
         try:
             # 设置全屏按钮样式
@@ -384,12 +354,14 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
             if playing:
                 try:
-                    self.playButton.setText('Pause')
+                    #self.playButton.setText(self._icon_pause.)
+                    self.playButton.setIcon(self._icon_pause)
                 except Exception:
                     pass
             else:
                 try:
-                    self.playButton.setText('Play')
+                    self.playButton.setIcon(self._icon_play)
+                    # self.playButton.setText('▶')
                 except Exception:
                     pass
         except Exception:
