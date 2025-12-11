@@ -24,6 +24,7 @@ bld/
 *.msi
 *.rar
 *.h264
+*.pt
 out/
 build*/
 cmake-build*/

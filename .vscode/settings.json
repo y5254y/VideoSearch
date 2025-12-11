@@ -1,0 +1,31 @@
+{
+    "python.pythonPath": "${command:python.interpreterPath}",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": false,
+    "python.linting.pylintArgs": [
+        "--disable=E1101, E0401, W0201"
+    ],
+    "python.formatting.autopep8Path": "${command:python.interpreterPath}",
+    "python.formatting.provider": "autopep8",
+    "python.formatting.autopep8Args": [
+        "--max-line-length=120"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/*.pyc": true
+    },
+    "files.associations": {
+        "*.py": "python"
+    }
+}

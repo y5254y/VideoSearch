@@ -1,7 +1,7 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource prefix="/icons">
-    <file>play.svg</file>
-    <file>pause.svg</file>
-    <file>stop.svg</file>
+    <file>resources/play.svg</file>
+    <file>resources/pause.svg</file>
+    <file>resources/stop.svg</file>
 </qresource>
 </RCC>

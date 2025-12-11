@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt, QUrl, QSize
-from PySide6.QtGui import QIcon
+from PySide6 import QtCore
+from PySide6.QtCore import Qt, QUrl, QSize, QTimer, QPoint, QRect
+from PySide6.QtGui import QIcon, QCursor
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from typing import Optional
 from search import format_ms
@@ -25,6 +26,17 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
         self._pending_position_ms: Optional[int] = None
         self._slider_is_dragging = False
+        self._is_fullscreen = False
+        
+        # 控制条自动隐藏相关
+        self._controls_hidden = False
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        self._hide_timer.timeout.connect(self._hide_controls)
+        self._HIDE_DELAY = 3000  # 3秒后自动隐藏
+        
+        # 保存控制条原始高度用于自动隐藏
+        self._original_controls_height = self.controlsContainer.height()
 
         # configure UI defaults similar to previous implementation
         try:
@@ -34,6 +46,27 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
         self.playbackSlider.setRange(0, 1000)
         self.playbackSlider.setEnabled(False)
+        
+        # 设置进度条样式使其更紧凑
+        self.playbackSlider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                background-color: rgba(255, 255, 255, 0.3);
+                height: 4px;
+                border-radius: 2px;
+            }
+            QSlider::handle:horizontal {
+                background-color: white;
+                width: 12px;
+                height: 12px;
+                border-radius: 6px;
+                margin: -4px 0;
+            }
+            QSlider::sub-page:horizontal {
+                background-color: #0078d4;
+                height: 4px;
+                border-radius: 2px;
+            }
+        """)
 
         # populate rate selector
         for r in [0.5, 1.0, 1.25, 1.5, 2.0]:
@@ -52,34 +85,45 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         try:
             if self._icon_play and not self._icon_play.isNull():
                 self.playButton.setIcon(self._icon_play)
-                self.playButton.setIconSize(QSize(18, 18))
+                self.playButton.setIconSize(QSize(16, 16))
+                self.playButton.setText('')
             else:
-                self.playButton.setText('Play')
+                self.playButton.setText('▶')
+                self.playButton.setStyleSheet("color: white;")
         except Exception:
             pass
+        
         try:
             if self._icon_stop and not self._icon_stop.isNull():
                 self.stopButton.setIcon(self._icon_stop)
-                self.stopButton.setIconSize(QSize(16, 16))
+                self.stopButton.setIconSize(QSize(14, 14))
+                self.stopButton.setText('')
             else:
-                self.stopButton.setText('Stop')
+                self.stopButton.setText('■')
+                self.stopButton.setStyleSheet("color: white;")
         except Exception:
             pass
+        
         try:
             if self._icon_pause and not self._icon_pause.isNull():
                 self.pauseButton.setIcon(self._icon_pause)
-                self.pauseButton.setIconSize(QSize(16, 16))
+                self.pauseButton.setIconSize(QSize(14, 14))
+                self.pauseButton.setText('')
             else:
-                self.pauseButton.setText('Pause')
+                self.pauseButton.setText('❚❚')
+                self.pauseButton.setStyleSheet("color: white;")
         except Exception:
             pass
-
-
-        # ensure built-in control row is visible; we'll use these buttons for controls
+        
         try:
-            self.controlsRow.setVisible(True)
+            # 设置全屏按钮样式
+            self.fullscreenButton.setText('⛶')
+            self.fullscreenButton.setStyleSheet("color: white;")
         except Exception:
             pass
+
+        # 隐藏暂停按钮，使用播放按钮作为切换
+        self.pauseButton.hide()
 
         # connect signals
         try:
@@ -94,6 +138,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             self.playbackSlider.sliderMoved.connect(self._on_slider_moved)
 
             self.rateSelector.currentIndexChanged.connect(self._on_rate_changed)
+            self.fullscreenButton.clicked.connect(self._on_fullscreen_clicked)
         except Exception:
             pass
 
@@ -105,6 +150,24 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             self.player.setVideoOutput(self.videoWidget)
         except Exception:
             pass
+
+        # Add no-video prompt label
+        self.no_video_label = QtWidgets.QLabel(self.videoWidget)
+        self.no_video_label.setText(self.tr("No video loaded"))
+        self.no_video_label.setAlignment(Qt.AlignCenter)
+        self.no_video_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 16px;
+                background-color: rgba(0, 0, 0, 0.6);
+                padding: 20px;
+                border-radius: 8px;
+            }
+        """)
+        # Make the label same size as video widget
+        self.no_video_label.setGeometry(self.videoWidget.rect())
+        # Show the label initially
+        self.no_video_label.show()
 
         # connect player signals
         try:
@@ -127,36 +190,32 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         except Exception:
             pass
 
-        # ensure play button label initial
+        # 设置所有按钮的样式
         try:
-            if self._icon_play:
-                self.playButton.setIcon(self._icon_play)
-                self.playButton.setIconSize(QSize(18, 18))
-            else:
-                self.playButton.setText('Play')
+            for btn in (self.playButton, self.pauseButton, self.stopButton, self.fullscreenButton):
+                btn.setFlat(True)
+                btn.setAutoDefault(False)
+                btn.setDefault(False)
+                btn.setStyleSheet("background-color: transparent; color: white; border: none;")
+                btn.setFocusPolicy(Qt.NoFocus)
         except Exception:
             pass
-
-        # we will use the built-in controlsRow from the .ui (play/pause/stop)
-        # ensure controls layout has reasonable spacing
+        
+        # 设置时间标签样式
         try:
-            self.controlsLayout.setSpacing(8)
-            self.controlsLayout.setContentsMargins(4, 2, 4, 2)
+            self.playbackTimeLabel.setStyleSheet("color: white; font-size: 11px;")
         except Exception:
             pass
-        # ensure built-in control buttons are styled for icon-only appearance
-        try:
-            for btn in (self.playButton, self.pauseButton, self.stopButton):
-                try:
-                    btn.setFlat(True)
-                    btn.setAutoDefault(False)
-                    btn.setDefault(False)
-                    btn.setMinimumSize(36, 28)
-                    btn.setMaximumHeight(28)
-                except Exception:
-                    pass
-        except Exception:
-            pass
+        
+        # 安装事件过滤器，用于检测鼠标移动
+        self.videoWidget.installEventFilter(self)
+        self.controlsContainer.installEventFilter(self)
+        
+        # 进度条事件处理，防止自动隐藏
+        self.playbackSlider.installEventFilter(self)
+        
+        # 启动自动隐藏定时器
+        self._start_hide_timer()
 
     # Public API
     def play_file(self, path: str):
@@ -172,6 +231,10 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         url = QUrl.fromLocalFile(path)
         self.player.setSource(url)
         self.player.play()
+    
+    def play(self, path: str, position_ms: int):
+        """兼容方法，用于处理来自搜索结果卡片的点击事件"""
+        self.play_at(path, position_ms)
 
     def set_rate(self, rate: float):
         try:
@@ -234,9 +297,13 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             try:
                 if status in (QMediaPlayer.MediaStatus.LoadedMedia, QMediaPlayer.MediaStatus.BufferedMedia, QMediaPlayer.MediaStatus.Buffered):
                     self.playbackSlider.setEnabled(True)
+                    # Hide no video label when media is loaded
+                    self.no_video_label.hide()
                 else:
                     if status == QMediaPlayer.MediaStatus.NoMedia:
                         self.playbackSlider.setEnabled(False)
+                        # Show no video label when no media
+                        self.no_video_label.show()
             except Exception:
                 pass
         except Exception:
@@ -328,6 +395,32 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         except Exception:
             pass
 
+    def _on_fullscreen_clicked(self):
+        try:
+            if not self._is_fullscreen:
+                # Enter fullscreen mode
+                self.videoWidget.showFullScreen()
+                self.fullscreenButton.setText('Exit Fullscreen')
+                # Hide no video label in fullscreen mode
+                if hasattr(self, 'no_video_label'):
+                    self.no_video_label.hide()
+            else:
+                # Exit fullscreen mode
+                self.videoWidget.showNormal()
+                self.fullscreenButton.setText('Fullscreen')
+                # Show no video label if no media loaded
+                if hasattr(self, 'no_video_label'):
+                    if self.player.mediaStatus() == QMediaPlayer.MediaStatus.NoMedia:
+                        self.no_video_label.show()
+            self._is_fullscreen = not self._is_fullscreen
+            
+            # 全屏切换时重置控制条状态
+            self._show_controls()
+            self._start_hide_timer()
+        except Exception as e:
+            print('Fullscreen error:', e)
+            pass
+
     def set_icons(self, play_icon: QIcon = None, pause_icon: QIcon = None, stop_icon: QIcon = None):
         """Allow host application to provide QIcons (from QRC or filesystem).
         This avoids calling QIcon(':/...') inside the widget and keeps resource loading centralized.
@@ -339,7 +432,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 try:
                     # update embedded buttons
                     self.playButton.setIcon(self._icon_play)
-                    self.playButton.setIconSize(QSize(20, 20))
+                    self.playButton.setIconSize(QSize(24, 24))  # 增大图标尺寸以适应按钮大小
                     try:
                         self.playButton.setText('')
                     except Exception:
@@ -350,7 +443,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                     # update toolbar button if exists
                     if hasattr(self, '_tb_play'):
                         self._tb_play.setIcon(self._icon_play)
-                        self._tb_play.setIconSize(QSize(20, 20))
+                        self._tb_play.setIconSize(QSize(24, 24))
                         self._tb_play.setVisible(True)
                 except Exception:
                     pass
@@ -358,7 +451,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self._icon_pause = pause_icon
                 try:
                     self.pauseButton.setIcon(self._icon_pause)
-                    self.pauseButton.setIconSize(QSize(20, 20))
+                    self.pauseButton.setIconSize(QSize(24, 24))  # 增大图标尺寸以适应按钮大小
                     try:
                         self.pauseButton.setText('')
                     except Exception:
@@ -368,7 +461,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 try:
                     if hasattr(self, '_tb_pause'):
                         self._tb_pause.setIcon(self._icon_pause)
-                        self._tb_pause.setIconSize(QSize(18, 18))
+                        self._tb_pause.setIconSize(QSize(22, 22))
                         self._tb_pause.setVisible(True)
                 except Exception:
                     pass
@@ -376,7 +469,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self._icon_stop = stop_icon
                 try:
                     self.stopButton.setIcon(self._icon_stop)
-                    self.stopButton.setIconSize(QSize(20, 20))
+                    self.stopButton.setIconSize(QSize(24, 24))  # 增大图标尺寸以适应按钮大小
                     try:
                         self.stopButton.setText('')
                     except Exception:
@@ -386,9 +479,77 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 try:
                     if hasattr(self, '_tb_stop'):
                         self._tb_stop.setIcon(self._icon_stop)
-                        self._tb_stop.setIconSize(QSize(18, 18))
+                        self._tb_stop.setIconSize(QSize(22, 22))
                         self._tb_stop.setVisible(True)
                 except Exception:
                     pass
         except Exception:
             pass
+    
+    def eventFilter(self, obj, event):
+        """事件过滤器，用于检测鼠标移动和控制自动隐藏"""
+        if event.type() == QtCore.QEvent.MouseMove:
+            # 鼠标在视频区域或控制区域移动时显示控制条
+            if obj == self.videoWidget or obj == self.controlsContainer or obj == self.playbackSlider:
+                self._show_controls()
+                self._start_hide_timer()
+                return True
+        elif event.type() == QtCore.QEvent.MouseButtonPress:
+            # 鼠标点击时显示控制条
+            if obj == self.videoWidget or obj == self.controlsContainer or obj == self.playbackSlider:
+                self._show_controls()
+                self._start_hide_timer()
+                return True
+        return super().eventFilter(obj, event)
+    
+    def _start_hide_timer(self):
+        """启动自动隐藏定时器"""
+        try:
+            # 只有在播放状态下才自动隐藏
+            if hasattr(self, 'player'):
+                try:
+                    if self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+                        self._hide_timer.start(self._HIDE_DELAY)
+                    else:
+                        self._hide_timer.stop()
+                except Exception:
+                    # 兼容旧版本API
+                    if self.player.state() == QMediaPlayer.PlayingState:
+                        self._hide_timer.start(self._HIDE_DELAY)
+                    else:
+                        self._hide_timer.stop()
+        except Exception:
+            pass
+    
+    def _show_controls(self):
+        """显示控制条"""
+        if self._controls_hidden:
+            try:
+                # 恢复控制条高度
+                self.controlsContainer.resize(self.controlsContainer.width(), self._original_controls_height)
+                self.controlsContainer.show()
+                self._controls_hidden = False
+            except Exception:
+                pass
+    
+    def _hide_controls(self):
+        """隐藏控制条"""
+        if not self._controls_hidden:
+            try:
+                # 检查鼠标是否在控制条或进度条上，如果在则不隐藏
+                cursor_pos = QCursor.pos()
+                video_rect = self.videoWidget.mapToGlobal(self.videoWidget.rect())
+                controls_rect = self.controlsContainer.mapToGlobal(self.controlsContainer.rect())
+                
+                # 如果鼠标在视频区域底部（控制条位置），则不隐藏
+                if controls_rect.contains(cursor_pos) or \
+                   (video_rect.contains(cursor_pos) and cursor_pos.y() >= video_rect.bottom() - 100):
+                    self._start_hide_timer()
+                    return
+                    
+                # 隐藏控制条
+                self.controlsContainer.resize(self.controlsContainer.width(), 0)
+                self.controlsContainer.hide()
+                self._controls_hidden = True
+            except Exception:
+                pass

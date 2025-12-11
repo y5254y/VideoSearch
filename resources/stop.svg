@@ -1,11 +1,5 @@
-<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg" p-id="13052" version="1.1" class="icon" t="1765266033074">
-
- <g>
-  <title>Layer 1</title>
-  <path id="svg_1" p-id="13053" fill="#2A6FF6" d="m512,1024c-282.7712,0 -512,-229.2288 -512,-512s229.2288,-512 512,-512s512,229.2288 512,512s-229.2288,512 -512,512z"/>
-  <path id="svg_2" p-id="13054" fill="#ffffff" d="m358.4,307.2m51.2,0l0,0q51.2,0 51.2,51.2l0,300.8q0,51.2 -51.2,51.2l0,0q-51.2,0 -51.2,-51.2l0,-300.8q0,-51.2 51.2,-51.2z"/>
-  <path id="svg_3" p-id="13055" fill="#ffffff" d="m569.6,307.2m51.2,0l0,0q51.2,0 51.2,51.2l0,300.8q0,51.2 -51.2,51.2l0,0q-51.2,0 -51.2,-51.2l0,-300.8q0,-51.2 51.2,-51.2z"/>
-  <rect id="svg_4" height="395.99999" width="316.99999" y="309.99998" x="358.99997" stroke="#000" fill="#fff"/>
-  <rect id="svg_5" height="425.99999" width="341.99999" y="293.99998" x="349.99997" stroke="#000" fill="#fff"/>
- </g>
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 6h12v12H6z" fill="#FFFFFF"/>
 </svg>

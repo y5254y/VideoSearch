@@ -8,7 +8,8 @@ from PySide6.QtWidgets import (
     QLineEdit, QComboBox, QMessageBox, QSizePolicy, QSplitter,
     QRadioButton, QButtonGroup, QSlider, QProgressBar, QTextBrowser, QListView
 )
-from PySide6.QtGui import QPixmap, QImage, QIcon, QAction
+from PySide6.QtGui import QPixmap, QImage, QIcon, QAction, QPainter, QPolygon, QColor
+from PySide6.QtCore import QPoint
 from PySide6.QtCore import Qt, QUrl, QSize, QTimer
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QVideoWidget
@@ -33,6 +34,19 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        
+        # 设置窗口初始大小为屏幕的3/4
+        screen_geometry = QApplication.primaryScreen().geometry()
+        width = int(screen_geometry.width() * 3 / 4)
+        height = int(screen_geometry.height() * 3 / 4)
+        self.resize(width, height)
+        
+        # 允许窗口大小调整
+        self.setMinimumSize(800, 600)
+        
+        # 隐藏默认标题栏，使用自定义标题栏
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
         
         # 初始化应用状态
         self.lang = 'zh'  # 默认语言
@@ -59,10 +73,43 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     
     def _init_ui(self):
         """初始化UI组件"""
-        # 语言选择
+        # 创建自定义标题栏
+        self._create_custom_title_bar()
+        
+        # 创建语言选择组合框
+        self.lang_combo = QComboBox()
         self.lang_combo.addItem('中文 (简体)')
         self.lang_combo.addItem('English')
         self.lang_combo.setCurrentIndex(0)
+        self.lang_combo.setToolTip(self._t('language'))
+        
+        # 将语言选择组合框添加到自定义标题栏
+        self.title_bar.layout().insertWidget(1, self.lang_combo)
+        
+        # 设置主窗口内容区域的背景色
+        self.centralwidget.setStyleSheet("""
+            QWidget#centralwidget {
+                background-color: #ffffff;
+            }
+        """)
+        
+        # 设置语言选择框的样式
+        self.lang_combo.setStyleSheet("""
+            QComboBox {
+                padding: 4px 8px;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                background-color: white;
+                margin-right: 10px;
+            }
+            QComboBox:hover {
+                border-color: #bdbdbd;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+        """)
         
         # 搜索模式选择
         self.rb_image.setChecked(True)
@@ -74,17 +121,180 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 分类选择框设置为可编辑
         self.combo_category.setEditable(True)
         
+        # 移除了清除按钮以简化界面
+        
+        # 设置列表视图为图标模式，支持缩略图显示
+        self.list_videos.setViewMode(QListWidget.IconMode)
+        self.list_videos.setIconSize(QSize(80, 60))
+        self.list_videos.setResizeMode(QListWidget.Adjust)
+        self.list_videos.setSpacing(12)
+        self.list_videos.setStyleSheet("""
+            QListWidget {
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 6px;
+                padding: 8px;
+            }
+            QListWidget::item {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                padding: 4px;
+            }
+            QListWidget::item:hover {
+                background-color: #e3f2fd;
+                border-color: #90caf9;
+            }
+        """)
+        
+        self.list_images.setViewMode(QListWidget.IconMode)
+        self.list_images.setIconSize(QSize(80, 60))
+        self.list_images.setResizeMode(QListWidget.Adjust)
+        self.list_images.setSpacing(12)
+        self.list_images.setStyleSheet("""
+            QListWidget {
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 6px;
+                padding: 8px;
+            }
+            QListWidget::item {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                padding: 4px;
+            }
+            QListWidget::item:hover {
+                background-color: #e3f2fd;
+                border-color: #90caf9;
+            }
+        """)
+        
+        # 优化左侧面板布局和控件样式
+        self._optimize_left_panel_layout()
+        
         # 播放器初始化
         self._init_player()
         
         # 搜索按钮状态初始化
-        self._btn_search_orig_text = self.btn_search.text()
         self._spinner_timer = None
         self._spinner_chars = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏']
         self._spinner_idx = 0
         
+        # 隐藏停止搜索按钮，因为搜索按钮已经实现了切换功能
+        self.btn_stop_search.setVisible(False)
+        
         # 初始化响应式布局
         self._init_responsive_layout()
+    
+    def _create_custom_title_bar(self):
+        """创建自定义标题栏"""
+        # 创建标题栏容器
+        self.title_bar = QWidget()
+        self.title_bar.setObjectName("title_bar")
+        
+        # 设置标题栏高度和样式
+        self.title_bar.setFixedHeight(40)
+        self.title_bar.setStyleSheet("""
+            QWidget#title_bar {
+                background-color: #ffffff;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            QLabel#title_label {
+                font-size: 14px;
+                font-weight: bold;
+                color: #333333;
+                padding-left: 10px;
+            }
+            QPushButton#title_btn {
+                width: 40px;
+                height: 40px;
+                border: none;
+                background-color: transparent;
+                color: #666666;
+                font-size: 12px;
+            }
+            QPushButton#title_btn:hover {
+                background-color: #f5f5f5;
+            }
+            QPushButton#title_btn_close:hover {
+                background-color: #ff4757;
+                color: white;
+            }
+        """)
+        
+        # 创建标题栏布局
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # 创建标题标签
+        self.title_label = QLabel(self._t('title'))
+        self.title_label.setObjectName("title_label")
+        
+        # 创建最小化按钮
+        self.btn_minimize = QPushButton("-")
+        self.btn_minimize.setObjectName("title_btn")
+        
+        # 创建最大化按钮
+        self.btn_maximize = QPushButton("□")
+        self.btn_maximize.setObjectName("title_btn")
+        
+        # 创建关闭按钮
+        self.btn_close = QPushButton("×")
+        self.btn_close.setObjectName("title_btn_close")
+        
+        # 添加控件到布局
+        layout.addWidget(self.title_label)
+        layout.addStretch(1)
+        layout.addWidget(self.btn_minimize)
+        layout.addWidget(self.btn_maximize)
+        layout.addWidget(self.btn_close)
+        
+        # 设置标题栏布局
+        self.title_bar.setLayout(layout)
+        
+        # 将标题栏添加到主窗口布局
+        main_layout = self.centralwidget.layout()
+        main_layout.insertWidget(0, self.title_bar)
+        
+        # 连接窗口控制按钮信号
+        self.btn_minimize.clicked.connect(self.showMinimized)
+        self.btn_maximize.clicked.connect(self._toggle_maximize)
+        self.btn_close.clicked.connect(self.close)
+        
+        # 添加窗口拖动功能
+        self.title_bar.mousePressEvent = self._title_bar_mouse_press_event
+        self.title_bar.mouseMoveEvent = self._title_bar_mouse_move_event
+        self.title_bar.mouseReleaseEvent = self._title_bar_mouse_release_event
+        
+        # 初始化拖动状态
+        self._drag_pos = None
+    
+    def _toggle_maximize(self):
+        """切换窗口最大化/还原状态"""
+        if self.isMaximized():
+            self.showNormal()
+            self.btn_maximize.setText("□")
+        else:
+            self.showMaximized()
+            self.btn_maximize.setText("◱")
+    
+    def _title_bar_mouse_press_event(self, event):
+        """标题栏鼠标按下事件"""
+        if event.button() == Qt.LeftButton:
+            self._drag_pos = event.globalPos() - self.frameGeometry().topLeft()
+            event.accept()
+    
+    def _title_bar_mouse_move_event(self, event):
+        """标题栏鼠标移动事件"""
+        if event.buttons() == Qt.LeftButton and self._drag_pos:
+            self.move(event.globalPos() - self._drag_pos)
+            event.accept()
+    
+    def _title_bar_mouse_release_event(self, event):
+        """标题栏鼠标释放事件"""
+        self._drag_pos = None
     
     def _init_player(self):
         """初始化播放器组件"""
@@ -149,11 +359,115 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         self.btn_stop_search.setIcon(self.icons['stop_search'])
         self.btn_stop_search.setIconSize(QSize(16, 16))
+        
+        # 设置清除按钮图标（清除按钮已被移除）
+        # if hasattr(self, 'btn_clear_videos'):
+        #     self.btn_clear_videos.setIcon(self.icons['stop'])
+        # if hasattr(self, 'btn_clear_images'):
+        #     self.btn_clear_images.setIcon(self.icons['stop'])
     
+    def _optimize_left_panel_layout(self):
+        """优化左侧面板的布局和控件样式"""
+        
+        # 设置左侧面板的背景色
+        self.leftPanel.setStyleSheet("""
+            QWidget#leftPanel {
+                background-color: white;
+                border-right: 1px solid #e0e0e0;
+            }
+            QLabel {
+                font-size: 13px;
+                color: #333;
+            }
+            QPushButton {
+                background-color: #2196f3;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-size: 13px;
+                margin: 4px 0;
+            }
+            QPushButton:hover {
+                background-color: #1976d2;
+            }
+            QPushButton:pressed {
+                background-color: #1565c0;
+            }
+            QRadioButton {
+                font-size: 13px;
+                color: #333;
+                margin: 2px 8px;
+            }
+            QComboBox {
+                padding: 6px;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                font-size: 13px;
+                margin: 4px 0;
+            }
+            QLineEdit {
+                padding: 6px;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                font-size: 13px;
+                margin: 4px 0;
+            }
+            QSlider {
+                margin: 8px 0;
+            }
+        """)
+        
+        # 为各个控件组添加更好的间距
+        for layout in [self.modeLayout, self.selectionLayout]:
+            if hasattr(layout, 'setSpacing'):
+                layout.setSpacing(8)
+            if hasattr(layout, 'setContentsMargins'):
+                layout.setContentsMargins(8, 8, 8, 8)
+        
+        # 优化单选按钮组的布局，改为紧凑的水平布局
+        self.modeLayout.setContentsMargins(12, 8, 12, 8)
+        
+        # 将单选按钮组设置为水平布局，使用紧凑的样式
+        self.radioButtonsLayout.setDirection(QHBoxLayout.LeftToRight)
+        self.radioButtonsLayout.setSpacing(12)
+        
+        # 调整单选按钮的样式，使它们更紧凑
+        self.rb_image.setStyleSheet("""
+            QRadioButton {
+                font-size: 12px;
+                color: #333;
+                margin: 2px 0;
+            }
+        """)
+        self.rb_category.setStyleSheet("""
+            QRadioButton {
+                font-size: 12px;
+                color: #333;
+                margin: 2px 0;
+            }
+        """)
+        self.rb_text.setStyleSheet("""
+            QRadioButton {
+                font-size: 12px;
+                color: #333;
+                margin: 2px 0;
+            }
+        """)
+        
+        # 调整按钮大小策略
+        for btn in [self.btn_select_videos, self.btn_select_images, self.btn_search]:
+            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        
+        # 优化标签样式
+        for lbl in [self.lbl_selected_videos, self.lbl_query_images, self.lbl_select_category, self.lbl_text_query]:
+            if lbl:
+                lbl.setStyleSheet("font-weight: bold;")
+                
     def _init_responsive_layout(self):
         """初始化响应式布局"""
         # 设置splitter的拉伸因子
-        self.splitter.setSizes([350, 500, 350])
+        self.splitter.setSizes([300, 600, 400])
         
         # 设置splitter的拉伸策略
         self.splitter.setStretchFactor(0, 1)   # leftPanel - 最小拉伸
@@ -161,11 +475,11 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.splitter.setStretchFactor(2, 2)   # rightPanel - 中等拉伸
         
         # 设置最小尺寸约束
-        self.leftPanel.setMinimumWidth(280)
-        self.leftPanel.setMaximumWidth(500)
-        self.centerPanel.setMinimumWidth(450)
-        self.rightPanel.setMinimumWidth(280)
-        self.rightPanel.setMaximumWidth(600)
+        self.leftPanel.setMinimumWidth(250)
+        self.leftPanel.setMaximumWidth(450)
+        self.centerPanel.setMinimumWidth(500)
+        self.rightPanel.setMinimumWidth(350)
+        self.rightPanel.setMaximumWidth(700)
         
         # 设置窗口大小策略
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -174,6 +488,28 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.list_results.setFlow(QListView.LeftToRight)
         self.list_results.setWrapping(True)
         self.list_results.setResizeMode(QListWidget.Adjust)
+        self.list_results.setMovement(QListView.Static)
+        self.list_results.setSelectionMode(QListWidget.SingleSelection)
+        
+        # 设置结果列表样式
+        self.list_results.setStyleSheet("""
+            QListWidget {
+                background-color: transparent;
+                border: none;
+                padding: 8px;
+            }
+            QListWidget::item {
+                margin: 8px;
+                border-radius: 8px;
+                background-color: white;
+            }
+            QListWidget::item:hover {
+                background-color: #f8f9fa;
+            }
+            QListWidget::item:selected {
+                background-color: #f0f8ff;
+            }
+        """)
         
         # 初始化搜索结果列表的图标大小
         self._update_result_icon_size()
@@ -187,21 +523,26 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self._update_result_icon_size()
     
     def _update_result_icon_size(self):
-        """根据窗口宽度更新搜索结果图标的大小"""
+        """根据窗口宽度更新搜索结果卡片的大小和排列"""
         window_width = self.width()
+        center_width = self.centerPanel.width()
         
-        if window_width < 1000:
-            # 小窗口时使用较小的图标
-            self.list_results.setIconSize(QSize(160, 90))
-            self.list_results.setSpacing(12)
-        elif window_width < 1400:
-            # 中等窗口时使用默认图标大小
-            self.list_results.setIconSize(QSize(200, 130))
-            self.list_results.setSpacing(16)
+        # 计算卡片宽度和行数，确保合理的排列
+        if center_width < 800:
+            # 小窗口时每行显示2个卡片
+            card_width = min(320, center_width // 2 - 20)
+            self.list_results.setGridSize(QSize(card_width, 160))
+        elif center_width < 1200:
+            # 中等窗口时每行显示3个卡片
+            card_width = min(320, center_width // 3 - 20)
+            self.list_results.setGridSize(QSize(card_width, 160))
         else:
-            # 大窗口时使用较大的图标
-            self.list_results.setIconSize(QSize(240, 160))
-            self.list_results.setSpacing(20)
+            # 大窗口时每行显示4个卡片
+            card_width = min(320, center_width // 4 - 20)
+            self.list_results.setGridSize(QSize(card_width, 170))
+        
+        # 设置间距，确保卡片之间有足够的空间
+        self.list_results.setSpacing(16)
     
     def _connect_signals(self):
         """连接UI信号和槽函数"""
@@ -221,7 +562,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.btn_select_videos.clicked.connect(self.select_videos)
         self.btn_select_images.clicked.connect(self.select_images)
         self.btn_search.clicked.connect(self._on_search_toggle)
-        self.btn_stop_search.clicked.connect(self.on_stop_search)
         
         # 滑块值变化
         self.slider.valueChanged.connect(self._on_slider_changed)
@@ -261,6 +601,15 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         text_controls = [self.input_text, self.lbl_text_query]
         for control in text_controls:
             control.setEnabled(text_mode)
+        
+        # Update mode hint
+        mode = self._get_search_mode()
+        mode_hints = {
+            'image': self._t('mode_hint_image'),
+            'category': self._t('mode_hint_category'),
+            'text': self._t('mode_hint_text')
+        }
+        self.lbl_mode_hint.setText(mode_hints.get(mode, self._t('mode_hint_select')))
     
     def change_language(self, index):
         """切换界面语言"""
@@ -269,11 +618,16 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 更新窗口标题
         self.setWindowTitle(self._t('title'))
         
+        # 更新标题栏标题
+        self.title_label.setText(self._t('title'))
+        
         # 更新按钮文本
         self.btn_select_videos.setText(self._t('select_videos'))
         self.btn_select_images.setText(self._t('select_images'))
+        # 清除按钮已被移除
+        # self.btn_clear_videos.setText(self._t('clear_videos'))
+        # self.btn_clear_images.setText(self._t('clear_images'))
         self.btn_search.setText(self._t('search'))
-        self.btn_stop_search.setText(self._t('stop_search'))
         
         # 更新播放器按钮文本
         if self.player_widget:
@@ -285,12 +639,14 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
                 pass
         
         # 更新标签文本
-        self.lbl_lang.setText(self._t('language') + ':')
         self.lbl_selected_videos.setText(self._t('selected_videos'))
         self.lbl_query_images.setText(self._t('query_images'))
         self.lbl_select_category.setText(self._t('select_category'))
         self.lbl_text_query.setText(self._t('text_query'))
         self.lbl_results.setText(self._t('results'))
+        
+        # 更新语言选择组合框的工具提示
+        self.lang_combo.setToolTip(self._t('language'))
         
         # 更新分类列表
         self.combo_category.clear()
@@ -318,7 +674,37 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             self.videos = files
             self.list_videos.clear()
             for f in files:
-                self.list_videos.addItem(f)
+                filename = os.path.basename(f)  # 只显示文件名
+                
+                # 尝试从视频中提取缩略图
+                try:
+                    # 创建临时图像用于存储缩略图
+                    thumbnail = QImage()
+                    
+                    # 使用QPixmap创建一个简单的视频图标作为备用
+                    pixmap = QPixmap(80, 60)
+                    pixmap.fill(QColor(41, 111, 246))  # 使用应用主题色
+                    
+                    # 在图标上绘制播放符号
+                    painter = QPainter(pixmap)
+                    painter.setBrush(QColor(255, 255, 255))  # 白色播放符号
+                    painter.drawPolygon(
+                        QPolygon([
+                            QPoint(30, 20),
+                            QPoint(55, 30),
+                            QPoint(30, 40)
+                        ])
+                    )
+                    painter.end()
+                    
+                    item = QListWidgetItem(QIcon(pixmap), filename)
+                except Exception as e:
+                    # 如果提取失败，使用默认图标
+                    item = QListWidgetItem(filename)
+                
+                item.setToolTip(f)  # 鼠标悬停显示完整路径
+                item.setTextAlignment(Qt.AlignCenter)
+                self.list_videos.addItem(item)
     
     def select_images(self):
         """选择图像文件"""
@@ -328,40 +714,90 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             self.images = files
             self.list_images.clear()
             for f in files:
-                self.list_images.addItem(f)
+                filename = os.path.basename(f)  # 只显示文件名
+                
+                # 加载图像作为缩略图
+                try:
+                    pixmap = QPixmap(f)
+                    if not pixmap.isNull():
+                        # 缩放图像到合适大小
+                        pixmap = pixmap.scaled(80, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                        item = QListWidgetItem(QIcon(pixmap), filename)
+                    else:
+                        item = QListWidgetItem(filename)
+                except Exception as e:
+                    item = QListWidgetItem(filename)
+                
+                item.setToolTip(f)  # 鼠标悬停显示完整路径
+                item.setTextAlignment(Qt.AlignCenter)
+                self.list_images.addItem(item)
+    
+    # def clear_videos(self):
+    #     """清除所有选择的视频"""
+    #     self.videos = []
+    #     self.list_videos.clear()
+    
+    # def clear_images(self):
+    #     """清除所有选择的图片"""
+    #     self.images = []
+    #     self.list_images.clear()
     
     # -------------- 搜索相关方法 --------------
     def _on_search_toggle(self):
         """切换搜索/停止搜索状态"""
+        print("_on_search_toggle method called")
+        print(f"Current search_worker: {self.search_worker}")
+        
         if self.search_worker:
             # 当前正在搜索，停止搜索
+            print("Stopping search...")
             self.on_stop_search()
         else:
+            # 立即更新按钮状态为停止搜索，然后再开始搜索
+            print("Starting search...")
+            # 保存原始按钮文本
+            self._btn_search_orig_text = self.btn_search.text()
+            print(f"Original button text saved: {self._btn_search_orig_text}")
+            # 更新按钮状态
+            self.btn_search.setText(self._t('stop_search'))
+            self.btn_search.setIcon(self.icons['stop_search'])
+            
             # 当前未搜索，开始搜索
+            print("Calling on_search...")
             self.on_search()
     
     def on_search(self):
         """开始搜索"""
+        print("on_search method called")
+        
         # 验证视频选择
+        print(f"Videos selected: {self.videos}")
         if not self.videos:
             QMessageBox.warning(self, self._t('no_videos'), self._t('no_videos_detail'))
             return
         
         # 确定搜索模式并验证输入
         mode = self._get_search_mode()
+        print(f"Search mode: {mode}")
         if mode is None:
             return
         
         # 准备搜索参数
         search_params = self._prepare_search_params(mode)
+        print(f"Search params: {search_params}")
         if search_params is None:
             return
         
         # 初始化搜索状态
         self._init_search_state()
         
+        # 开始按钮旋转动画并保存原始按钮文本
+        self._start_button_spinner()
+        
         # 创建并启动搜索工作线程
+        print("Starting search worker...")
         self._start_search_worker(search_params)
+        print("Search worker started")
     
     def _get_search_mode(self):
         """获取当前选择的搜索模式"""
@@ -406,43 +842,63 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.txt_log.clear()
         self.progress_bar.setValue(0)
         
-        # 更新搜索按钮状态
-        try:
-            self.btn_search.set_accent('#FF5722')
-            self.btn_search.setText(self._t('stop_search'))
-        except Exception:
-            pass
+        # 更新搜索按钮状态已在_on_search_toggle中完成
+        pass
     
     def _start_search_worker(self, params):
         """启动搜索工作线程"""
-        self.search_worker = SearchWorker(
-            search_engine=self.search_engine,
-            video_paths=self.videos,
-            mode=params['mode'],
-            query_images=params.get('query_images'),
-            query_text=params.get('query_text'),
-            query_category=params.get('query_category'),
-            score_threshold=params['score_threshold'],
-            parent=self
-        )
-        
-        # 连接工作线程信号
-        self.search_worker.match_found.connect(self._on_match_found)
-        self.search_worker.finished_search.connect(self._on_search_finished)
-        self.search_worker.error.connect(self._on_search_error)
-        self.search_worker.progress.connect(self._on_progress)
-        self.search_worker.message.connect(self._on_message)
-        
-        # 启动搜索
-        self.search_worker.start()
+        try:
+            print("Creating SearchWorker instance...")
+            self.search_worker = SearchWorker(
+                search_engine=self.search_engine,
+                video_paths=self.videos,
+                mode=params['mode'],
+                query_images=params.get('query_images'),
+                query_text=params.get('query_text'),
+                query_category=params.get('query_category'),
+                score_threshold=params['score_threshold'],
+                parent=self
+            )
+            
+            print("Connecting worker signals...")
+            # 连接工作线程信号
+            self.search_worker.match_found.connect(self._on_match_found)
+            self.search_worker.finished_search.connect(self._on_search_finished)
+            self.search_worker.error.connect(self._on_search_error)
+            self.search_worker.progress.connect(self._on_progress)
+            self.search_worker.message.connect(self._on_message)
+            
+            print("Starting worker thread...")
+            # 启动搜索
+            self.search_worker.start()
+            print(f"Worker thread started: {self.search_worker.isRunning()}")
+        except Exception as e:
+            print(f"Error in _start_search_worker: {e}")
+            import traceback
+            traceback.print_exc()
     
     def on_stop_search(self):
         """停止搜索"""
         if self.search_worker:
+            print("on_stop_search method called")
             self.search_worker.stop()
-            self.btn_search.setText(self._t('search'))
+            
+            # 重置搜索工作线程引用
+            self.search_worker = None
+            print("Search worker stopped and reset to None")
+            
+            # 更新日志
             self.txt_log.append(f'<span style="color:gray;">{self._t("stop_search")}</span>')
-            self._start_button_spinner()
+            
+            # 停止按钮旋转动画
+            self._stop_button_spinner()
+            
+            # 直接更新搜索按钮状态
+            try:
+                self.btn_search.setText(self._t('search'))
+                self.btn_search.setIcon(self.icons['search'])
+            except Exception as e:
+                print(f"Error updating button state: {e}")
     
     # -------------- 搜索结果处理 --------------
     def _on_match_found(self, video_path, timestamp_ms, score):
@@ -458,24 +914,48 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             
             # 创建结果卡片
             card = ResultCard(video_path=video_path, timestamp_ms=timestamp_ms, score=score, thumbnail=thumb)
+            
+            # 根据网格大小调整卡片大小
+            grid_size = self.list_results.gridSize()
+            card.setFixedWidth(grid_size.width())
+            
             lw_item = QListWidgetItem()
-            lw_item.setSizeHint(card.sizeHint())
+            # 设置项目大小与卡片大小匹配
+            item_height = max(150, grid_size.height())
+            lw_item.setSizeHint(QSize(grid_size.width(), item_height))
             lw_item.setData(Qt.ItemDataRole.UserRole, (video_path, timestamp_ms))
             
             # 添加结果到列表
             self.list_results.addItem(lw_item)
             self.list_results.setItemWidget(lw_item, card)
+            
+            # 连接卡片点击事件
+            card.clicked.connect(self.on_result_card_clicked)
+            
+            # 更新搜索结果数量显示
+            self.lbl_results.setText(f"{self._t('results')} ({self.list_results.count()})")
         except Exception as e:
             # 失败时使用简单列表项作为回退
             item = QListWidgetItem()
             item.setText(f"{os.path.basename(video_path)} -- {self._t('match_at')} {format_ms(timestamp_ms)} (score: {score:.2f})")
             item.setData(Qt.ItemDataRole.UserRole, (video_path, timestamp_ms))
             self.list_results.addItem(item)
+            
+            # 更新搜索结果数量显示
+            self.lbl_results.setText(f"{self._t('results')} ({self.list_results.count()})")
     
     def _on_search_finished(self):
         """搜索完成处理"""
         # 重置搜索状态
         self._reset_search_state()
+        
+        # 确保按钮文本恢复为"搜索"
+        try:
+            self.btn_search.setText(self._t('search'))
+            self.btn_search.setIcon(self.icons['search'])
+            print("Search button text reset to 'search'")
+        except Exception as e:
+            print(f"Error resetting search button: {e}")
         
         # 更新UI
         self.txt_log.append(f"{self._t('search_finished')}")
@@ -525,7 +1005,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     # -------------- 视频播放处理 --------------
     def on_video_double_clicked(self, item):
         """双击视频列表项播放视频"""
-        path = item.text()
+        path = item.toolTip()  # 从toolTip获取完整路径
         if os.path.exists(path) and self.player_widget:
             self.player_widget.play_file(path)
     
@@ -535,6 +1015,11 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         if data and self.player_widget:
             video_path, position_ms = data
             self.player_widget.play_at(video_path, position_ms)
+            
+    def on_result_card_clicked(self, video_path, timestamp_ms):
+        """处理结果卡片的点击事件"""
+        if video_path and timestamp_ms is not None and self.player_widget:
+            self.player_widget.play(video_path, timestamp_ms)
     
     # -------------- 辅助方法 --------------
     def _t(self, key):
@@ -569,30 +1054,39 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     
     def _reset_search_state(self):
         """重置搜索状态"""
+        print("_reset_search_state method called")
         self.btn_search.setEnabled(True)
-        self.btn_search.setText(self._btn_search_orig_text)
-        self.btn_stop_search.setEnabled(False)
+        
         self.search_worker = None
+        print("Search worker reset to None")
         self._stop_button_spinner()
         
+        # 直接更新搜索按钮状态
         try:
-            self.btn_search.set_accent(None)
-            self.btn_search.set_loading(False)
-        except Exception:
-            pass
+            self.btn_search.setText(self._t('search'))
+            self.btn_search.setIcon(self.icons['search'])
+        except Exception as e:
+            print(f"Error updating search button: {e}")
+        
+        # 重置搜索结果数量显示
+        self.lbl_results.setText(self._t('results'))
     
     def _start_button_spinner(self):
         """开始搜索按钮的旋转动画"""
         try:
-            self.btn_search.setEnabled(False)
+            # 保存原始按钮文本
+            self._btn_search_orig_text = self.btn_search.text()
+            # 保持按钮可用，以便用户可以点击停止搜索
+            self.btn_search.setEnabled(True)
             
             if self._spinner_timer is None:
                 self._spinner_timer = QTimer(self)
                 self._spinner_timer.setInterval(100)
                 self._spinner_timer.timeout.connect(self._update_spinner)
                 self._spinner_timer.start()
-        except Exception:
-            pass
+                print("Spinner timer started")
+        except Exception as e:
+            print(f"Error starting button spinner: {e}")
     
     def _stop_button_spinner(self):
         """停止搜索按钮的旋转动画"""
@@ -602,7 +1096,14 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
                 self._spinner_timer.deleteLater()
                 self._spinner_timer = None
             
-            self.btn_search.setText(self._btn_search_orig_text)
+            # 确保按钮文本重置为原始文本
+            if hasattr(self, '_btn_search_orig_text'):
+                self.btn_search.setText(self._btn_search_orig_text)
+            else:
+                # 如果原始文本未保存，直接设置为"搜索"
+                self.btn_search.setText(self._t('search'))
+                self.btn_search.setIcon(self.icons['search'])
+            
             self.btn_search.setEnabled(True)
         except Exception:
             pass
@@ -612,7 +1113,10 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         try:
             self._spinner_idx = (self._spinner_idx + 1) % len(self._spinner_chars)
             self.btn_search.setText(f"{self._spinner_chars[self._spinner_idx]} {self._t('stop_search')}")
-        except Exception:
+            # 确保按钮保持可用状态
+            self.btn_search.setEnabled(True)
+        except Exception as e:
+            print(f"Error updating spinner: {e}")
             pass
     
     def _load_config(self):
@@ -644,7 +1148,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.progress_bar.setValue(0)
         
         try:
-            self.btn_search.set_accent('#FF5722')
+            #self.btn_search.set_accent('#FF5722')
             self.btn_search.setText(self._t('stop_search'))
             self.btn_search.set_loading(True)
         except Exception:

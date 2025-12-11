@@ -11,7 +11,7 @@
    </rect>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="mainLayout">
     <item>
      <widget class="QSplitter" name="splitter">
       <property name="orientation">
@@ -20,41 +20,44 @@
       <widget class="QWidget" name="leftPanel">
        <layout class="QVBoxLayout" name="leftLayout">
         <item>
-         <layout class="QHBoxLayout" name="langLayout">
-          <item>
-           <widget class="QLabel" name="lbl_lang">
-            <property name="text">
-             <string>Language:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="lang_combo"/>
-          </item>
-         </layout>
-        </item>
-        <item>
          <layout class="QVBoxLayout" name="selectionLayout">
           <item>
-           <layout class="QHBoxLayout" name="modeLayout">
+           <layout class="QVBoxLayout" name="modeLayout">
             <item>
-             <widget class="QRadioButton" name="rb_image">
-              <property name="text">
-               <string>Image</string>
-              </property>
-             </widget>
+             <layout class="QHBoxLayout" name="radioButtonsLayout">
+              <item>
+               <widget class="QRadioButton" name="rb_image">
+                <property name="text">
+                 <string>Image</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="rb_category">
+                <property name="text">
+                 <string>Category</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="rb_text">
+                <property name="text">
+                 <string>Text</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
             <item>
-             <widget class="QRadioButton" name="rb_category">
+             <widget class="QLabel" name="lbl_mode_hint">
               <property name="text">
-               <string>Category</string>
+               <string>Select a search mode</string>
               </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QRadioButton" name="rb_text">
-              <property name="text">
-               <string>Text</string>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: #666666; font-size: 12px;</string>
               </property>
              </widget>
             </item>

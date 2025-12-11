@@ -58,24 +58,7 @@ class ResultCard(Card):
 
         h.addWidget(right, 1)
 
-        # action buttons
-        actions = QWidget()
-        av = QHBoxLayout(actions)
-        av.setContentsMargins(0, 0, 0, 0)
-        av.setSpacing(6)
-        btn_open = QPushButton('Open')
-        btn_open.setObjectName('action_open')
-        btn_open.setFixedHeight(24)
-        btn_open.clicked.connect(self._on_open)
-        btn_download = QPushButton('Download')
-        btn_download.setObjectName('action_download')
-        btn_download.setFixedHeight(24)
-        btn_download.clicked.connect(self._on_download)
-        av.addStretch()
-        av.addWidget(btn_open)
-        av.addWidget(btn_download)
-
-        rv.addWidget(actions)
+     
 
         # put container into Card
         self.add_widget(container)
@@ -103,9 +86,20 @@ class ResultCard(Card):
         self.style().polish(self)
         super().leaveEvent(e)
 
-    def mousePressEvent(self, e):
+    def mouseDoubleClickEvent(self, e):
+        """处理鼠标双击事件，发射点击信号"""
         self.clicked.emit(self.video_path, self.timestamp_ms)
+        super().mouseDoubleClickEvent(e)
+    
+    def mousePressEvent(self, e):
+        """处理鼠标点击事件，添加点击反馈"""
+        self.setStyleSheet(self.styleSheet() + " background-color: rgba(0, 0, 0, 0.05);")
         super().mousePressEvent(e)
+    
+    def mouseReleaseEvent(self, e):
+        """处理鼠标释放事件，移除点击反馈"""
+        self.setStyleSheet(self.styleSheet().replace(" background-color: rgba(0, 0, 0, 0.05);", ""))
+        super().mouseReleaseEvent(e)
 
     def _on_open(self):
         # open the video in system file explorer or play

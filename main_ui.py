@@ -28,8 +28,8 @@ class Ui_MainWindow(object):
         MainWindow.resize(1000, 700)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
-        self.horizontalLayout = QHBoxLayout(self.centralwidget)
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.mainLayout = QVBoxLayout(self.centralwidget)
+        self.mainLayout.setObjectName(u"mainLayout")
         self.splitter = QSplitter(self.centralwidget)
         self.splitter.setObjectName(u"splitter")
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
@@ -38,39 +38,36 @@ class Ui_MainWindow(object):
         self.leftLayout = QVBoxLayout(self.leftPanel)
         self.leftLayout.setObjectName(u"leftLayout")
         self.leftLayout.setContentsMargins(0, 0, 0, 0)
-        self.langLayout = QHBoxLayout()
-        self.langLayout.setObjectName(u"langLayout")
-        self.lbl_lang = QLabel(self.leftPanel)
-        self.lbl_lang.setObjectName(u"lbl_lang")
-
-        self.langLayout.addWidget(self.lbl_lang)
-
-        self.lang_combo = QComboBox(self.leftPanel)
-        self.lang_combo.setObjectName(u"lang_combo")
-
-        self.langLayout.addWidget(self.lang_combo)
-
-
-        self.leftLayout.addLayout(self.langLayout)
-
         self.selectionLayout = QVBoxLayout()
         self.selectionLayout.setObjectName(u"selectionLayout")
-        self.modeLayout = QHBoxLayout()
+        self.modeLayout = QVBoxLayout()
         self.modeLayout.setObjectName(u"modeLayout")
+        self.radioButtonsLayout = QHBoxLayout()
+        self.radioButtonsLayout.setObjectName(u"radioButtonsLayout")
         self.rb_image = QRadioButton(self.leftPanel)
         self.rb_image.setObjectName(u"rb_image")
 
-        self.modeLayout.addWidget(self.rb_image)
+        self.radioButtonsLayout.addWidget(self.rb_image)
 
         self.rb_category = QRadioButton(self.leftPanel)
         self.rb_category.setObjectName(u"rb_category")
 
-        self.modeLayout.addWidget(self.rb_category)
+        self.radioButtonsLayout.addWidget(self.rb_category)
 
         self.rb_text = QRadioButton(self.leftPanel)
         self.rb_text.setObjectName(u"rb_text")
 
-        self.modeLayout.addWidget(self.rb_text)
+        self.radioButtonsLayout.addWidget(self.rb_text)
+
+
+        self.modeLayout.addLayout(self.radioButtonsLayout)
+
+        self.lbl_mode_hint = QLabel(self.leftPanel)
+        self.lbl_mode_hint.setObjectName(u"lbl_mode_hint")
+        self.lbl_mode_hint.setWordWrap(True)
+        self.lbl_mode_hint.setStyleSheet(u"color: #666666; font-size: 12px;")
+
+        self.modeLayout.addWidget(self.lbl_mode_hint)
 
 
         self.selectionLayout.addLayout(self.modeLayout)
@@ -203,7 +200,7 @@ class Ui_MainWindow(object):
 
         self.splitter.addWidget(self.rightPanel)
 
-        self.horizontalLayout.addWidget(self.splitter)
+        self.mainLayout.addWidget(self.splitter)
 
         MainWindow.setCentralWidget(self.centralwidget)
 
@@ -213,10 +210,10 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        self.lbl_lang.setText(QCoreApplication.translate("MainWindow", u"Language:", None))
         self.rb_image.setText(QCoreApplication.translate("MainWindow", u"Image", None))
         self.rb_category.setText(QCoreApplication.translate("MainWindow", u"Category", None))
         self.rb_text.setText(QCoreApplication.translate("MainWindow", u"Text", None))
+        self.lbl_mode_hint.setText(QCoreApplication.translate("MainWindow", u"Select a search mode", None))
         self.btn_select_videos.setText(QCoreApplication.translate("MainWindow", u"Select Videos", None))
         self.lbl_selected_videos.setText(QCoreApplication.translate("MainWindow", u"Selected Videos", None))
         self.btn_select_images.setText(QCoreApplication.translate("MainWindow", u"Select Images", None))
