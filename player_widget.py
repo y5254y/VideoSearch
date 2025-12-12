@@ -394,17 +394,42 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
     def _on_fullscreen_clicked(self):
         try:
-            # 获取视频部件的顶级窗口
-            top_window = self.videoWidget.window()
-            
             if not self._is_fullscreen:
-                # Enter fullscreen mode
-                top_window.showFullScreen()
-                self.fullscreenButton.setText('Exit Fullscreen')
+                # 保存视频部件的原始尺寸和状态
+                self._original_video_size = self.videoWidget.size()
+                self._original_video_min_height = self.videoWidget.minimumHeight()
+                
+                # Enter fullscreen mode for video widget only
+                self.videoWidget.setParent(None)  # 从当前布局中移除
+                self.videoWidget.showFullScreen()
+                # 使用图标而不是文字
+                self.fullscreenButton.setText('⛶')
+                # 全屏时隐藏其他控制元素
+                self.playbackSlider.hide()
+                self.playbackTimeLabel.hide()
+                self.bufferLabel.hide()
+                self.controlsContainer.hide()
+                
+                # 安装事件过滤器以捕获ESC键
+                self.videoWidget.installEventFilter(self)
             else:
                 # Exit fullscreen mode
-                top_window.showNormal()
-                self.fullscreenButton.setText('Fullscreen')
+                self.videoWidget.showNormal()
+                # 将视频部件重新添加回布局
+                self.verticalLayout.insertWidget(0, self.videoWidget)
+                # 使用图标而不是文字
+                self.fullscreenButton.setText('⛶')
+                # 恢复视频部件的原始尺寸和状态
+                self.videoWidget.setMinimumHeight(self._original_video_min_height)
+                self.videoWidget.resize(self._original_video_size)
+                # 恢复控制元素显示
+                self.playbackSlider.show()
+                self.playbackTimeLabel.show()
+                self.bufferLabel.show()
+                self.controlsContainer.show()
+                
+                # 移除事件过滤器
+                self.videoWidget.removeEventFilter(self)
             self._is_fullscreen = not self._is_fullscreen
             
             # 全屏切换时重置控制条状态
@@ -488,11 +513,21 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self._show_controls()
                 self._start_hide_timer()
                 return True
+        elif event.type() == QtCore.QEvent.MouseButtonDblClick:
+            # 鼠标双击切换全屏模式
+            if obj == self.videoWidget:
+                self._on_fullscreen_clicked()
+                return True
         elif event.type() == QtCore.QEvent.MouseButtonPress:
             # 鼠标点击时显示控制条
             if obj == self.videoWidget or obj == self.controlsContainer or obj == self.playbackSlider:
                 self._show_controls()
                 self._start_hide_timer()
+                return True
+        elif event.type() == QtCore.QEvent.KeyPress:
+            # ESC键退出全屏模式
+            if obj == self.videoWidget and self._is_fullscreen and event.key() == QtCore.Qt.Key_Escape:
+                self._on_fullscreen_clicked()
                 return True
         return super().eventFilter(obj, event)
     
@@ -525,6 +560,11 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self._controls_hidden = False
             except Exception:
                 pass
+    
+    def keyPressEvent(self, event):
+        """处理键盘事件，支持ESC键退出全屏"""
+        if event.key() == QtCore.Qt.Key_Escape and self._is_fullscreen:
+            self._on_fullscreen_clicked()
     
     def _hide_controls(self):
         """隐藏控制条"""
