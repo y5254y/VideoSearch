@@ -3,5 +3,9 @@
     <file>resources/play.svg</file>
     <file>resources/pause.svg</file>
     <file>resources/stop.svg</file>
+    <file>resources/folder_open.svg</file>
+    <file>resources/search.svg</file>
+    <file>resources/stop_search.svg</file>
+    <file>resources/dropdown_arrow.svg</file>
 </qresource>
 </RCC>

@@ -26,7 +26,7 @@ class Ui_PlayerWidget(object):
 
         self.controlsContainer = QWidget(PlayerWidget)
         self.controlsContainer.setObjectName(u"controlsContainer")
-        self.controlsContainer.setStyleSheet(u"background-color: rgba(0, 0, 0, 0.5);")
+        self.controlsContainer.setStyleSheet(u"background-color: rgba(255, 255, 255, 0.9);")
         self.controlsLayout = QVBoxLayout(self.controlsContainer)
         self.controlsLayout.setObjectName(u"controlsLayout")
         self.controlsLayout.setContentsMargins(0, 0, 0, 0)

@@ -47,24 +47,29 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         self.playbackSlider.setRange(0, 1000)
         self.playbackSlider.setEnabled(False)
         
-        # 设置进度条样式使其更紧凑
+        # 设置进度条样式使其符合Fluent风格
         self.playbackSlider.setStyleSheet("""
             QSlider::groove:horizontal {
-                background-color: rgba(255, 255, 255, 0.3);
-                height: 4px;
-                border-radius: 2px;
+                background-color: #DADCE0;
+                height: 6px;
+                border-radius: 3px;
             }
             QSlider::handle:horizontal {
-                background-color: white;
-                width: 12px;
-                height: 12px;
-                border-radius: 6px;
-                margin: -4px 0;
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                background-color: #FFFFFF;
+                border: 2px solid #4285F4;
+                margin-top: -7px;
+                margin-bottom: -7px;
+            }
+            QSlider::handle:horizontal:hover {
+                background-color: #4285F4;
             }
             QSlider::sub-page:horizontal {
-                background-color: #0078d4;
-                height: 4px;
-                border-radius: 2px;
+                background-color: #4285F4;
+                height: 6px;
+                border-radius: 3px;
             }
         """)
 
@@ -79,21 +84,16 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         self._icon_play = None
         self._icon_pause = None
         self._icon_stop = None
-        #self.playButton.setText('▶')
-        self.playButton.setStyleSheet("color: white;")
-        #self.stopButton.setText('■')
-        self.stopButton.setStyleSheet("color: white;")
+        # 设置按钮样式使其符合Fluent风格
+        self.playButton.setStyleSheet("color: #202124; font-size: 14px;")
+        self.stopButton.setStyleSheet("color: #202124; font-size: 14px;")
          
-        
         try:
             # 设置全屏按钮样式
             self.fullscreenButton.setText('⛶')
-            self.fullscreenButton.setStyleSheet("color: white;")
+            self.fullscreenButton.setStyleSheet("color: #202124; font-size: 14px;")
         except Exception:
             pass
-
-        # 隐藏暂停按钮，使用播放按钮作为切换
-        # self.pauseButton.hide()
 
         # connect signals
         try:
@@ -142,20 +142,67 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         except Exception:
             pass
 
-        # 设置所有按钮的样式
+        # 设置所有按钮和控制元素的样式使其符合Fluent风格
         try:
+            # 设置按钮样式
             for btn in (self.playButton, self.stopButton, self.fullscreenButton):
                 btn.setFlat(True)
                 btn.setAutoDefault(False)
                 btn.setDefault(False)
-                btn.setStyleSheet("background-color: transparent; color: white; border: none;")
+                btn.setStyleSheet("background-color: transparent; color: #202124; border: none; padding: 8px 12px; font-size: 14px;")
                 btn.setFocusPolicy(Qt.NoFocus)
+            
+            # 设置倍速选择器样式
+            self.rateSelector.setStyleSheet("""
+                QComboBox {
+                    background-color: #FFFFFF;
+                    color: #202124;
+                    border: 1px solid #DADCE0;
+                    border-radius: 4px;
+                    padding: 4px 24px 4px 8px;
+                    font-size: 12px;
+                    min-width: 50px;
+                    max-width: 80px;
+                }
+                QComboBox::drop-down {
+                    subcontrol-origin: padding;
+                    subcontrol-position: top right;
+                    width: 20px;
+                    border-left: 1px solid #DADCE0;
+                    border-right: none;
+                    border-top: none;
+                    border-bottom: none;
+                }
+                QComboBox::down-arrow {
+                    image: url(resources/dropdown_arrow.svg);
+                    width: 10px;
+                    height: 10px;
+                }
+                QComboBox:hover {
+                    border-color: #90CAF9;
+                }
+                QComboBox:focus {
+                    border-color: #4285F4;
+                    outline: none;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: #FFFFFF;
+                    border: 1px solid #DADCE0;
+                    border-radius: 4px;
+                    padding: 0;
+                    selection-background-color: #E3F2FD;
+                    selection-color: #202124;
+                }
+                QComboBox QAbstractItemView::item {
+                    padding: 8px 12px;
+                }
+            """)
         except Exception:
             pass
         
-        # 设置时间标签样式
+        # 设置时间标签样式使其符合Fluent风格
         try:
-            self.playbackTimeLabel.setStyleSheet("color: white; font-size: 11px;")
+            self.playbackTimeLabel.setStyleSheet("color: #202124; font-size: 13px; padding: 0 12px;")
         except Exception:
             pass
         
@@ -347,13 +394,16 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
     def _on_fullscreen_clicked(self):
         try:
+            # 获取视频部件的顶级窗口
+            top_window = self.videoWidget.window()
+            
             if not self._is_fullscreen:
                 # Enter fullscreen mode
-                self.videoWidget.showFullScreen()
+                top_window.showFullScreen()
                 self.fullscreenButton.setText('Exit Fullscreen')
             else:
                 # Exit fullscreen mode
-                self.videoWidget.showNormal()
+                top_window.showNormal()
                 self.fullscreenButton.setText('Fullscreen')
             self._is_fullscreen = not self._is_fullscreen
             
