@@ -86,30 +86,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 将语言选择组合框添加到自定义标题栏
         self.title_bar.layout().insertWidget(1, self.lang_combo)
         
-        # 设置主窗口内容区域的背景色
-        self.centralwidget.setStyleSheet("""
-            QWidget#centralwidget {
-                background-color: #ffffff;
-            }
-        """)
-        
-        # 设置语言选择框的样式
-        self.lang_combo.setStyleSheet("""
-            QComboBox {
-                padding: 4px 8px;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                background-color: white;
-                margin-right: 10px;
-            }
-            QComboBox:hover {
-                border-color: #bdbdbd;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-        """)
+        # 样式已移至QSS文件中
         
         # 搜索模式选择
         self.rb_image.setChecked(True)
@@ -128,47 +105,11 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.list_videos.setIconSize(QSize(80, 60))
         self.list_videos.setResizeMode(QListWidget.Adjust)
         self.list_videos.setSpacing(12)
-        self.list_videos.setStyleSheet("""
-            QListWidget {
-                background-color: #f8f9fa;
-                border: 1px solid #e9ecef;
-                border-radius: 6px;
-                padding: 8px;
-            }
-            QListWidget::item {
-                background-color: white;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QListWidget::item:hover {
-                background-color: #e3f2fd;
-                border-color: #90caf9;
-            }
-        """)
         
         self.list_images.setViewMode(QListWidget.IconMode)
         self.list_images.setIconSize(QSize(80, 60))
         self.list_images.setResizeMode(QListWidget.Adjust)
         self.list_images.setSpacing(12)
-        self.list_images.setStyleSheet("""
-            QListWidget {
-                background-color: #f8f9fa;
-                border: 1px solid #e9ecef;
-                border-radius: 6px;
-                padding: 8px;
-            }
-            QListWidget::item {
-                background-color: white;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QListWidget::item:hover {
-                background-color: #e3f2fd;
-                border-color: #90caf9;
-            }
-        """)
         
         # 优化左侧面板布局和控件样式
         self._optimize_left_panel_layout()
@@ -191,35 +132,8 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.title_bar = QWidget()
         self.title_bar.setObjectName("title_bar")
         
-        # 设置标题栏高度和样式
+        # 设置标题栏高度
         self.title_bar.setFixedHeight(50)
-        self.title_bar.setStyleSheet("""
-            QWidget#title_bar {
-                background-color: #ffffff;
-                border-bottom: 1px solid #e0e0e0;
-            }
-            QLabel#title_label {
-                font-size: 14px;
-                font-weight: bold;
-                color: #333333;
-                padding-left: 10px;
-            }
-            QPushButton#title_btn {
-                width: 40px;
-                height: 40px;
-                border: none;
-                background-color: transparent;
-                color: #666666;
-                font-size: 12px;
-            }
-            QPushButton#title_btn:hover {
-                background-color: #f5f5f5;
-            }
-            QPushButton#title_btn_close:hover {
-                background-color: #ff4757;
-                color: white;
-            }
-        """)
         
         # 创建标题栏布局
         layout = QHBoxLayout()
@@ -361,55 +275,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     def _optimize_left_panel_layout(self):
         """优化左侧面板的布局和控件样式"""
         
-        # 设置左侧面板的背景色
-        self.leftPanel.setStyleSheet("""
-            QWidget#leftPanel {
-                background-color: white;
-                border-right: 1px solid #e0e0e0;
-            }
-            QLabel {
-                font-size: 13px;
-                color: #333;
-            }
-            QPushButton {
-                background-color: #2196f3;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 12px;
-                font-size: 13px;
-                margin: 4px 0;
-            }
-            QPushButton:hover {
-                background-color: #1976d2;
-            }
-            QPushButton:pressed {
-                background-color: #1565c0;
-            }
-            QRadioButton {
-                font-size: 13px;
-                color: #333;
-                margin: 2px 8px;
-            }
-            QComboBox {
-                padding: 6px;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                font-size: 13px;
-                margin: 4px 0;
-            }
-            QLineEdit {
-                padding: 6px;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                font-size: 13px;
-                margin: 4px 0;
-            }
-            QSlider {
-                margin: 8px 0;
-            }
-        """)
-        
         # 为各个控件组添加更好的间距
         for layout in [self.modeLayout, self.selectionLayout]:
             if hasattr(layout, 'setSpacing'):
@@ -424,37 +289,13 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.radioButtonsLayout.setDirection(QHBoxLayout.LeftToRight)
         self.radioButtonsLayout.setSpacing(12)
         
-        # 调整单选按钮的样式，使它们更紧凑
-        self.rb_image.setStyleSheet("""
-            QRadioButton {
-                font-size: 12px;
-                color: #333;
-                margin: 2px 0;
-            }
-        """)
-        self.rb_category.setStyleSheet("""
-            QRadioButton {
-                font-size: 12px;
-                color: #333;
-                margin: 2px 0;
-            }
-        """)
-        self.rb_text.setStyleSheet("""
-            QRadioButton {
-                font-size: 12px;
-                color: #333;
-                margin: 2px 0;
-            }
-        """)
+        # 调整单选按钮的样式已移至QSS文件中
         
         # 调整按钮大小策略
         for btn in [self.btn_select_videos, self.btn_select_images, self.btn_search]:
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
-        # 优化标签样式
-        for lbl in [self.lbl_selected_videos, self.lbl_query_images, self.lbl_select_category, self.lbl_text_query]:
-            if lbl:
-                lbl.setStyleSheet("font-weight: bold;")
+        # 设置优化标签样式已移至QSS文件中
                 
     def _init_responsive_layout(self):
         """初始化响应式布局"""
@@ -483,25 +324,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.list_results.setMovement(QListView.Static)
         self.list_results.setSelectionMode(QListWidget.SingleSelection)
         
-        # 设置结果列表样式
-        self.list_results.setStyleSheet("""
-            QListWidget {
-                background-color: transparent;
-                border: none;
-                padding: 8px;
-            }
-            QListWidget::item {
-                margin: 8px;
-                border-radius: 8px;
-                background-color: white;
-            }
-            QListWidget::item:hover {
-                background-color: #f8f9fa;
-            }
-            QListWidget::item:selected {
-                background-color: #f0f8ff;
-            }
-        """)
+        # 设置结果列表样式已移至QSS文件中
         
         # 初始化搜索结果列表的图标大小
         self._update_result_icon_size()

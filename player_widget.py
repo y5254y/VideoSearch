@@ -47,31 +47,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         self.playbackSlider.setRange(0, 1000)
         self.playbackSlider.setEnabled(False)
         
-        # 设置进度条样式使其符合Fluent风格
-        self.playbackSlider.setStyleSheet("""
-            QSlider::groove:horizontal {
-                background-color: #DADCE0;
-                height: 6px;
-                border-radius: 3px;
-            }
-            QSlider::handle:horizontal {
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                background-color: #FFFFFF;
-                border: 2px solid #4285F4;
-                margin-top: -7px;
-                margin-bottom: -7px;
-            }
-            QSlider::handle:horizontal:hover {
-                background-color: #4285F4;
-            }
-            QSlider::sub-page:horizontal {
-                background-color: #4285F4;
-                height: 6px;
-                border-radius: 3px;
-            }
-        """)
+        # 进度条样式已移至QSS文件
 
         # populate rate selector
         for r in [0.5, 1.0, 1.25, 1.5, 2.0]:
@@ -84,14 +60,10 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         self._icon_play = None
         self._icon_pause = None
         self._icon_stop = None
-        # 设置按钮样式使其符合Fluent风格
-        self.playButton.setStyleSheet("color: #202124; font-size: 14px;")
-        self.stopButton.setStyleSheet("color: #202124; font-size: 14px;")
-         
+        
         try:
-            # 设置全屏按钮样式
+            # 设置全屏按钮图标
             self.fullscreenButton.setText('⛶')
-            self.fullscreenButton.setStyleSheet("color: #202124; font-size: 14px;")
         except Exception:
             pass
 
@@ -142,69 +114,17 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         except Exception:
             pass
 
-        # 设置所有按钮和控制元素的样式使其符合Fluent风格
+        # 设置按钮属性
         try:
-            # 设置按钮样式
             for btn in (self.playButton, self.stopButton, self.fullscreenButton):
                 btn.setFlat(True)
                 btn.setAutoDefault(False)
                 btn.setDefault(False)
-                btn.setStyleSheet("background-color: transparent; color: #202124; border: none; padding: 8px 12px; font-size: 14px;")
                 btn.setFocusPolicy(Qt.NoFocus)
-            
-            # 设置倍速选择器样式
-            self.rateSelector.setStyleSheet("""
-                QComboBox {
-                    background-color: #FFFFFF;
-                    color: #202124;
-                    border: 1px solid #DADCE0;
-                    border-radius: 4px;
-                    padding: 4px 24px 4px 8px;
-                    font-size: 12px;
-                    min-width: 50px;
-                    max-width: 80px;
-                }
-                QComboBox::drop-down {
-                    subcontrol-origin: padding;
-                    subcontrol-position: top right;
-                    width: 20px;
-                    border-left: 1px solid #DADCE0;
-                    border-right: none;
-                    border-top: none;
-                    border-bottom: none;
-                }
-                QComboBox::down-arrow {
-                    image: url(resources/dropdown_arrow.svg);
-                    width: 10px;
-                    height: 10px;
-                }
-                QComboBox:hover {
-                    border-color: #90CAF9;
-                }
-                QComboBox:focus {
-                    border-color: #4285F4;
-                    outline: none;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #FFFFFF;
-                    border: 1px solid #DADCE0;
-                    border-radius: 4px;
-                    padding: 0;
-                    selection-background-color: #E3F2FD;
-                    selection-color: #202124;
-                }
-                QComboBox QAbstractItemView::item {
-                    padding: 8px 12px;
-                }
-            """)
         except Exception:
             pass
         
-        # 设置时间标签样式使其符合Fluent风格
-        try:
-            self.playbackTimeLabel.setStyleSheet("color: #202124; font-size: 13px; padding: 0 12px;")
-        except Exception:
-            pass
+        # 所有样式已移至QSS文件
         
         # 安装事件过滤器，用于检测鼠标移动
         self.videoWidget.installEventFilter(self)
