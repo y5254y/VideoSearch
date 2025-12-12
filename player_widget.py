@@ -395,41 +395,84 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
     def _on_fullscreen_clicked(self):
         try:
             if not self._is_fullscreen:
+                # 保存整个播放器窗口的状态和尺寸
+                self._original_window_geometry = self.window().geometry()
+                self._original_window_maximized = self.window().isMaximized()
+                
                 # 保存视频部件的原始尺寸和状态
                 self._original_video_size = self.videoWidget.size()
                 self._original_video_min_height = self.videoWidget.minimumHeight()
+                self._original_video_max_height = self.videoWidget.maximumHeight()
+                
+                # 保存布局的原始状态
+                self._original_video_parent = self.videoWidget.parent()
                 
                 # Enter fullscreen mode for video widget only
                 self.videoWidget.setParent(None)  # 从当前布局中移除
                 self.videoWidget.showFullScreen()
+                
                 # 使用图标而不是文字
                 self.fullscreenButton.setText('⛶')
-                # 全屏时隐藏其他控制元素
-                self.playbackSlider.hide()
-                self.playbackTimeLabel.hide()
-                self.bufferLabel.hide()
-                self.controlsContainer.hide()
+                
+                # 全屏时不要直接隐藏控制元素，而是让自动隐藏机制来管理
+                # 首先确保控制元素是可见的
+                self.playbackSlider.show()
+                self.playbackTimeLabel.show()
+                self.bufferLabel.show()
+                self.controlsContainer.show()
                 
                 # 安装事件过滤器以捕获ESC键
                 self.videoWidget.installEventFilter(self)
+                
+                # 在全屏模式下立即显示控制条
+                self._show_controls()
+                self._start_hide_timer()
             else:
                 # Exit fullscreen mode
                 self.videoWidget.showNormal()
+                
                 # 将视频部件重新添加回布局
-                self.verticalLayout.insertWidget(0, self.videoWidget)
+                if hasattr(self, 'verticalLayout'):
+                    self.verticalLayout.insertWidget(0, self.videoWidget)
+                else:
+                    # 如果找不到verticalLayout，使用原始父容器
+                    if hasattr(self, '_original_video_parent') and self._original_video_parent:
+                        self.videoWidget.setParent(self._original_video_parent)
+                
                 # 使用图标而不是文字
                 self.fullscreenButton.setText('⛶')
+                
                 # 恢复视频部件的原始尺寸和状态
-                self.videoWidget.setMinimumHeight(self._original_video_min_height)
-                self.videoWidget.resize(self._original_video_size)
+                if hasattr(self, '_original_video_min_height'):
+                    self.videoWidget.setMinimumHeight(self._original_video_min_height)
+                if hasattr(self, '_original_video_max_height'):
+                    self.videoWidget.setMaximumHeight(self._original_video_max_height)
+                if hasattr(self, '_original_video_size'):
+                    # 确保视频部件的大小完全恢复
+                    self.videoWidget.setFixedSize(self._original_video_size)
+                
                 # 恢复控制元素显示
                 self.playbackSlider.show()
                 self.playbackTimeLabel.show()
                 self.bufferLabel.show()
                 self.controlsContainer.show()
                 
+                # 恢复窗口的原始状态和尺寸
+                if hasattr(self, '_original_window_geometry') and hasattr(self, '_original_window_maximized'):
+                    if not self._original_window_maximized:
+                        self.window().setGeometry(self._original_window_geometry)
+                    self.window().showNormal()
+                
                 # 移除事件过滤器
                 self.videoWidget.removeEventFilter(self)
+                
+                # 强制布局管理器重新计算布局
+                self.verticalLayout.invalidate()
+                self.verticalLayout.update()
+                self.updateGeometry()
+                self.verticalLayout.update()
+                self.updateGeometry()
+                self.window().updateGeometry()
             self._is_fullscreen = not self._is_fullscreen
             
             # 全屏切换时重置控制条状态
@@ -519,8 +562,14 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self._on_fullscreen_clicked()
                 return True
         elif event.type() == QtCore.QEvent.MouseButtonPress:
-            # 鼠标点击时显示控制条
-            if obj == self.videoWidget or obj == self.controlsContainer or obj == self.playbackSlider:
+            # 鼠标点击视频区域时播放/暂停，并显示控制条
+            if obj == self.videoWidget:
+                self._on_play_toggle()
+                self._show_controls()
+                self._start_hide_timer()
+                return True
+            # 鼠标点击控制区域时仅显示控制条
+            elif obj == self.controlsContainer or obj == self.playbackSlider:
                 self._show_controls()
                 self._start_hide_timer()
                 return True
@@ -528,6 +577,10 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             # ESC键退出全屏模式
             if obj == self.videoWidget and self._is_fullscreen and event.key() == QtCore.Qt.Key_Escape:
                 self._on_fullscreen_clicked()
+                return True
+            # 空格键播放/暂停
+            elif event.key() == QtCore.Qt.Key_Space:
+                self._on_play_toggle()
                 return True
         return super().eventFilter(obj, event)
     
@@ -562,9 +615,12 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 pass
     
     def keyPressEvent(self, event):
-        """处理键盘事件，支持ESC键退出全屏"""
+        """处理键盘事件，支持ESC键退出全屏和空格键播放/暂停"""
         if event.key() == QtCore.Qt.Key_Escape and self._is_fullscreen:
             self._on_fullscreen_clicked()
+        elif event.key() == QtCore.Qt.Key_Space:
+            # 空格键播放/暂停
+            self._on_play_toggle()
     
     def _hide_controls(self):
         """隐藏控制条"""
