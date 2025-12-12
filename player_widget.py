@@ -93,14 +93,14 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             pass
 
         # 隐藏暂停按钮，使用播放按钮作为切换
-        self.pauseButton.hide()
+        # self.pauseButton.hide()
 
         # connect signals
         try:
             # use a single play button as toggle (hide pause button from main window)
             self.playButton.clicked.connect(self._on_play_toggle)
             # keep pause/stop handlers for compatibility
-            self.pauseButton.clicked.connect(self._on_pause_clicked)
+            # self.pauseButton.clicked.connect(self._on_pause_clicked)
             self.stopButton.clicked.connect(self._on_stop_clicked)
 
             self.playbackSlider.sliderPressed.connect(self._on_slider_pressed)
@@ -162,7 +162,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
         # 设置所有按钮的样式
         try:
-            for btn in (self.playButton, self.pauseButton, self.stopButton, self.fullscreenButton):
+            for btn in (self.playButton, self.stopButton, self.fullscreenButton):
                 btn.setFlat(True)
                 btn.setAutoDefault(False)
                 btn.setDefault(False)
@@ -422,12 +422,13 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             if pause_icon is not None and not pause_icon.isNull():
                 self._icon_pause = pause_icon
                 try:
-                    self.pauseButton.setIcon(self._icon_pause)
-                    self.pauseButton.setIconSize(QSize(24, 24))  # 增大图标尺寸以适应按钮大小
-                    try:
-                        self.pauseButton.setText('')
-                    except Exception:
-                        pass
+                    # self.pauseButton.setIcon(self._icon_pause)
+                    # self.pauseButton.setIconSize(QSize(24, 24))  # 增大图标尺寸以适应按钮大小
+                    # try:
+                    #     self.pauseButton.setText('')
+                    # except Exception:
+                    #     pass
+                    pass
                 except Exception:
                     pass
                 try:

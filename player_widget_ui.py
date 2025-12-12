@@ -56,11 +56,6 @@ class Ui_PlayerWidget(object):
 
         self.leftButtonsLayout.addWidget(self.playButton)
 
-        self.pauseButton = QPushButton(self.buttonsRow)
-        self.pauseButton.setObjectName(u"pauseButton")
-
-        self.leftButtonsLayout.addWidget(self.pauseButton)
-
         self.stopButton = QPushButton(self.buttonsRow)
         self.stopButton.setObjectName(u"stopButton")
 
@@ -109,12 +104,9 @@ class Ui_PlayerWidget(object):
 
     def retranslateUi(self, PlayerWidget):
         self.playButton.setText(QCoreApplication.translate("PlayerWidget", u"Play", None))
-        self.pauseButton.setText(QCoreApplication.translate("PlayerWidget", u"Pause", None))
         self.stopButton.setText(QCoreApplication.translate("PlayerWidget", u"Stop", None))
         self.playbackTimeLabel.setText(QCoreApplication.translate("PlayerWidget", u"00:00/00:00", None))
         self.bufferLabel.setText("")
         self.fullscreenButton.setText(QCoreApplication.translate("PlayerWidget", u"Fullscreen", None))
         pass
     # retranslateUi
-
-
