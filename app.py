@@ -401,21 +401,35 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         category_mode = self.rb_category.isChecked()
         text_mode = self.rb_text.isChecked()
         
-        # 使用分组方式更新控件状态，提高代码可读性
+        # 根据搜索模式隐藏/显示相关控件
+        # 图片搜索模式: 显示视频选择、图片选择；隐藏类别选择、文字查询
+        # 类别搜索模式: 显示视频选择、类别选择；隐藏图片选择、文字查询
+        # 文字搜索模式: 显示视频选择、文字查询；隐藏图片选择、类别选择
+        
+        # 视频选择相关控件 - 所有模式都显示
+        self.btn_select_videos.setVisible(True)
+        self.lbl_selected_videos.setVisible(True)
+        self.list_videos.setVisible(True)
+        
         # 图像搜索相关控件
         image_controls = [self.btn_select_images, self.list_images, self.lbl_query_images]
         for control in image_controls:
+            control.setVisible(image_mode)
             control.setEnabled(image_mode)
         
         # 分类搜索相关控件
         category_controls = [self.combo_category, self.lbl_select_category]
         for control in category_controls:
+            control.setVisible(category_mode)
             control.setEnabled(category_mode)
         
         # 文本搜索相关控件
         text_controls = [self.input_text, self.lbl_text_query]
         for control in text_controls:
+            control.setVisible(text_mode)
             control.setEnabled(text_mode)
+        
+
         
         # Update mode hint
         mode = self._get_search_mode()
