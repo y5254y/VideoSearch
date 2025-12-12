@@ -121,24 +121,6 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         except Exception:
             pass
 
-        # Add no-video prompt label
-        self.no_video_label = QtWidgets.QLabel(self.videoWidget)
-        self.no_video_label.setText(self.tr("No video loaded"))
-        self.no_video_label.setAlignment(Qt.AlignCenter)
-        self.no_video_label.setStyleSheet("""
-            QLabel {
-                color: white;
-                font-size: 16px;
-                background-color: rgba(0, 0, 0, 0.6);
-                padding: 20px;
-                border-radius: 8px;
-            }
-        """)
-        # Make the label same size as video widget
-        self.no_video_label.setGeometry(self.videoWidget.rect())
-        # Show the label initially
-        self.no_video_label.show()
-
         # connect player signals
         try:
             self.player.positionChanged.connect(self._on_player_position_changed)
@@ -267,13 +249,9 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             try:
                 if status in (QMediaPlayer.MediaStatus.LoadedMedia, QMediaPlayer.MediaStatus.BufferedMedia, QMediaPlayer.MediaStatus.Buffered):
                     self.playbackSlider.setEnabled(True)
-                    # Hide no video label when media is loaded
-                    self.no_video_label.hide()
                 else:
                     if status == QMediaPlayer.MediaStatus.NoMedia:
                         self.playbackSlider.setEnabled(False)
-                        # Show no video label when no media
-                        self.no_video_label.show()
             except Exception:
                 pass
         except Exception:
@@ -373,17 +351,10 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 # Enter fullscreen mode
                 self.videoWidget.showFullScreen()
                 self.fullscreenButton.setText('Exit Fullscreen')
-                # Hide no video label in fullscreen mode
-                if hasattr(self, 'no_video_label'):
-                    self.no_video_label.hide()
             else:
                 # Exit fullscreen mode
                 self.videoWidget.showNormal()
                 self.fullscreenButton.setText('Fullscreen')
-                # Show no video label if no media loaded
-                if hasattr(self, 'no_video_label'):
-                    if self.player.mediaStatus() == QMediaPlayer.MediaStatus.NoMedia:
-                        self.no_video_label.show()
             self._is_fullscreen = not self._is_fullscreen
             
             # 全屏切换时重置控制条状态

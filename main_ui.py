@@ -137,10 +137,6 @@ class Ui_MainWindow(object):
 
         self.btnsLayout.addWidget(self.btn_search)
 
-        # self.btn_stop_search = QPushButton(self.leftPanel)
-        # self.btn_stop_search.setObjectName(u"btn_stop_search")
-
-        # self.btnsLayout.addWidget(self.btn_stop_search)
 
 
         self.selectionLayout.addLayout(self.btnsLayout)
@@ -214,7 +210,6 @@ class Ui_MainWindow(object):
         self.lbl_text_query.setText(QCoreApplication.translate("MainWindow", u"Text Query", None))
         self.lbl_score.setText(QCoreApplication.translate("MainWindow", u"Score Threshold: 0.25", None))
         self.btn_search.setText(QCoreApplication.translate("MainWindow", u"Search", None))
-        # self.btn_stop_search.setText(QCoreApplication.translate("MainWindow", u"Stop Search", None))
         self.lbl_results.setText(QCoreApplication.translate("MainWindow", u"Results", None))
         pass
     # retranslateUi

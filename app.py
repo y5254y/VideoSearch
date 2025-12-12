@@ -181,8 +181,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self._spinner_chars = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏']
         self._spinner_idx = 0
         
-        # 隐藏停止搜索按钮，因为搜索按钮已经实现了切换功能
-        # self.btn_stop_search.setVisible(False)
         
         # 初始化响应式布局
         self._init_responsive_layout()
@@ -357,8 +355,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.btn_search.setIcon(self.icons['search'])
         self.btn_search.setIconSize(QSize(16, 16))
         
-        # self.btn_stop_search.setIcon(self.icons['stop_search'])
-        # self.btn_stop_search.setIconSize(QSize(16, 16))
         
 
     
