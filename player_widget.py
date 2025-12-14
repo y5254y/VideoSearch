@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PySide6 import QtWidgets
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QSizePolicy
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QUrl, QSize, QTimer, QPoint, QRect
 from PySide6.QtGui import QIcon, QCursor
@@ -23,6 +23,8 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+        # 设置widget的大小策略，使其能够自适应父容器
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self._pending_position_ms: Optional[int] = None
         self._slider_is_dragging = False
@@ -41,6 +43,8 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         # configure UI defaults similar to previous implementation
         try:
             self.videoWidget.setMinimumHeight(240)
+            # 设置视频组件能够自适应父容器大小
+            self.videoWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         except Exception:
             pass
 
@@ -102,17 +106,32 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self.player.bufferStatusChanged.connect(self._on_buffer_status_changed)
             except Exception:
                 pass
-            # update play button when playback state changes
-            try:
-                self.player.playbackStateChanged.connect(self._on_playback_state_changed)
-            except Exception:
-                # some versions may use different signal name
-                try:
-                    self.player.stateChanged.connect(self._on_playback_state_changed)
-                except Exception:
-                    pass
+        except Exception as e:
+            print(f"Error connecting player signals: {e}")
+    
+    def resizeEvent(self, event):
+        """处理窗口大小变化事件，保持视频宽高比"""
+        super().resizeEvent(event)
+        # 可以在这里添加宽高比保持逻辑
+        # 例如：保持16:9的宽高比
+        # video_ratio = 16 / 9
+        # widget_ratio = self.width() / self.height()
+        # if widget_ratio > video_ratio:
+        #     new_width = int(self.height() * video_ratio)
+        #     self.videoWidget.setFixedWidth(new_width)
+        # else:
+        #     new_height = int(self.width() / video_ratio)
+        #     self.videoWidget.setFixedHeight(new_height)
+
+        # update play button when playback state changes
+        try:
+            self.player.playbackStateChanged.connect(self._on_playback_state_changed)
         except Exception:
-            pass
+            # some versions may use different signal name
+            try:
+                self.player.stateChanged.connect(self._on_playback_state_changed)
+            except Exception:
+                pass
 
         # 设置按钮属性
         try:

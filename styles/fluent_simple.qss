@@ -34,10 +34,11 @@ QPushButton {
     background-color: #4285F4;
     color: #FFFFFF;
     border: none;
-    border-radius: 12px;
-    padding: 10px 20px;
+    border-radius: 0.6em;
+    padding: 0.5em 1em;
     font-weight: 600;
-    min-height: 36px;
+    min-height: 2em;
+    font-size: 0.9em;
 }
 
 QPushButton:hover {
@@ -79,10 +80,10 @@ QPushButton[primary="true"]:pressed {
 QLineEdit, QComboBox {
     background-color: #FFFFFF;
     color: #202124;
-    border: 2px solid #E0E0E0;
-    border-radius: 12px;
-    padding: 10px 14px;
-    min-height: 36px;
+    border: 0.14em solid #E0E0E0;
+    border-radius: 0.86em;
+    padding: 0.71em 1.00em;
+    min-height: 2.57em;
 }
 
 QLineEdit:focus, QComboBox:focus {
@@ -123,15 +124,15 @@ QLabel[class="subtitle"] {
 /* Lists and Tables */
 QListWidget, QTableWidget {
     background-color: #FFFFFF;
-    border: 2px solid #E0E0E0;
-    border-radius: 12px;
-    padding: 8px;
+    border: 0.14em solid #E0E0E0;
+    border-radius: 0.86em;
+    padding: 0.57em;
 }
 
 QListWidget::item, QTableWidget::item {
     background-color: #FFFFFF;
-    border-radius: 8px;
-    padding: 8px;
+    border-radius: 0.57em;
+    padding: 0.57em;
 }
 
 QListWidget::item:hover, QTableWidget::item:hover {
@@ -145,14 +146,16 @@ QListWidget::item:selected, QTableWidget::item:selected {
 /* Radio Buttons */
 QRadioButton {
     color: #202124;
-    margin: 8px;
+    margin: 0.4em;
+    font-size: 0.9em;
 }
 
+/* Radio Buttons */
 QRadioButton::indicator {
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    border: 2px solid #DADCE0;
+    width: 1.2em;
+    height: 1.2em;
+    border-radius: 0.6em;
+    border: 0.12em solid #DADCE0;
     background-color: #FFFFFF;
 }
 
@@ -172,18 +175,18 @@ QSlider {
 
 QSlider::groove:horizontal {
     background-color: #DADCE0;
-    height: 6px;
-    border-radius: 3px;
+    height: 0.43em;
+    border-radius: 0.21em;
 }
 
 QSlider::handle:horizontal {
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
+    width: 1.43em;
+    height: 1.43em;
+    border-radius: 0.71em;
     background-color: #FFFFFF;
-    border: 2px solid #4285F4;
-    margin-top: -7px;
-    margin-bottom: -7px;
+    border: 0.14em solid #4285F4;
+    margin-top: -0.5em;
+    margin-bottom: -0.5em;
 }
 
 QSlider::handle:horizontal:hover {
@@ -193,24 +196,24 @@ QSlider::handle:horizontal:hover {
 /* Progress Bars */
 QProgressBar {
     background-color: #F1F3F4;
-    border-radius: 12px;
+    border-radius: 0.86em;
     text-align: center;
-    height: 12px;
+    height: 0.86em;
     padding: 0;
 }
 
 QProgressBar::chunk {
     background-color: #4285F4;
-    border-radius: 10px;
-    margin: 1px;
+    border-radius: 0.71em;
+    margin: 0.07em;
 }
 
 /* Text Browser */
 QTextBrowser {
     background-color: #FFFFFF;
-    border: 2px solid #E0E0E0;
-    border-radius: 12px;
-    padding: 12px;
+    border: 0.14em solid #E0E0E0;
+    border-radius: 0.86em;
+    padding: 0.86em;
 }
 
 /* Splitter */
@@ -361,9 +364,10 @@ QPushButton#title_btn_close:hover {
 QWidget#leftPanel {
     background-color: white;
     border-right: 1px solid #e0e0e0;
+    min-width: 280px; /* 增加最小宽度，确保在高缩放比例下文本也能完整显示 */
 }
 QWidget#leftPanel QLabel {
-    font-size: 13px;
+    font-size: 0.9em;
     color: #333;
 }
 QWidget#leftPanel QLabel[font-weight="bold"] {
@@ -373,10 +377,12 @@ QWidget#leftPanel QPushButton {
     background-color: #2196f3;
     color: white;
     border: none;
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 13px;
-    margin: 4px 0;
+    border-radius: 0.6em;
+    padding: 0.35em 0.7em;
+    font-size: 0.8em;
+    margin: 0.2em 0;
+    min-height: 1.8em;
+    max-height: 2.2em; /* 限制最大高度，防止在高缩放比例下过大 */
 }
 QWidget#leftPanel QPushButton:hover {
     background-color: #1976d2;
@@ -385,9 +391,12 @@ QWidget#leftPanel QPushButton:pressed {
     background-color: #1565c0;
 }
 QWidget#leftPanel QRadioButton {
-    font-size: 13px;
+    font-size: 0.85em;
     color: #333;
-    margin: 2px 8px;
+    margin: 2px 4px;
+    padding: 2px 4px;
+    min-width: 160px; /* 增加最小宽度，确保在高缩放比例下中文文本也能完整显示 */
+    white-space: nowrap; /* 防止文本换行 */
 }
 QWidget#leftPanel QComboBox {
     padding: 6px;

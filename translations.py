@@ -42,7 +42,9 @@ TRANSLATIONS = {
         'found_match': '在 {name} {sec}s 发现匹配 (分数={score:.2f})',
         'search_finished': '搜索完成。',
         'search_error_title': '搜索错误',
-        'stop_search': '停止搜索'
+        'stop_search': '停止搜索',
+        'downloading_model': '第一次运行，正在下载模型...',
+        'extracting_frames': '正在为 {name} 抽帧...'
     },
     'en': {
         'title': 'LocalVideoSearch',
@@ -80,6 +82,8 @@ TRANSLATIONS = {
         'found_match': 'Found match in {name} at {sec}s (score={score:.2f})',
         'search_finished': 'Search finished.',
         'search_error_title': 'Search Error',
-        'stop_search': 'Stop Search'
+        'stop_search': 'Stop Search',
+        'downloading_model': 'First run, downloading model...',
+        'extracting_frames': 'Extracting frames from {name}...'
     }
 }

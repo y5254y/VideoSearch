@@ -18,13 +18,22 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(1000, 700)
+        # 设置窗口最小大小
+        MainWindow.setMinimumSize(800, 600)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.mainLayout = QVBoxLayout(self.centralwidget)
         self.mainLayout.setObjectName(u"mainLayout")
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(self.centralwidget)
         self.splitter.setObjectName(u"splitter")
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
+        # 设置splitter的拉伸因子，让中间面板能够自适应伸缩
+        self.splitter.setStretchFactor(0, 1)  # 左侧面板
+        self.splitter.setStretchFactor(1, 2)  # 中间面板
+        self.splitter.setStretchFactor(2, 2)  # 右侧面板
+        # 设置左侧面板的最小宽度，确保能够完整显示单选按钮文本
+        self.splitter.setSizes([280, 400, 400])
         self.leftPanel = QWidget(self.splitter)
         self.leftPanel.setObjectName(u"leftPanel")
         self.leftLayout = QVBoxLayout(self.leftPanel)
@@ -32,22 +41,27 @@ class Ui_MainWindow(object):
         self.leftLayout.setContentsMargins(0, 0, 0, 0)
         self.selectionLayout = QVBoxLayout()
         self.selectionLayout.setObjectName(u"selectionLayout")
+        # 保持控件在顶部，不添加顶部拉伸
         self.modeLayout = QVBoxLayout()
         self.modeLayout.setObjectName(u"modeLayout")
-        self.radioButtonsLayout = QHBoxLayout()
+        self.radioButtonsLayout = QVBoxLayout()
         self.radioButtonsLayout.setObjectName(u"radioButtonsLayout")
+        self.radioButtonsLayout.setContentsMargins(4, 8, 8, 8)
         self.rb_image = QRadioButton(self.leftPanel)
         self.rb_image.setObjectName(u"rb_image")
+        self.rb_image.setMinimumWidth(0)  # 允许按钮根据文本自动调整宽度
 
         self.radioButtonsLayout.addWidget(self.rb_image)
 
         self.rb_category = QRadioButton(self.leftPanel)
         self.rb_category.setObjectName(u"rb_category")
+        self.rb_category.setMinimumWidth(0)  # 允许按钮根据文本自动调整宽度
 
         self.radioButtonsLayout.addWidget(self.rb_category)
 
         self.rb_text = QRadioButton(self.leftPanel)
         self.rb_text.setObjectName(u"rb_text")
+        self.rb_text.setMinimumWidth(0)  # 允许按钮根据文本自动调整宽度
 
         self.radioButtonsLayout.addWidget(self.rb_text)
 
@@ -140,6 +154,8 @@ class Ui_MainWindow(object):
 
 
         self.selectionLayout.addLayout(self.btnsLayout)
+        # 在底部添加拉伸因子，将所有控件固定在顶部
+        self.selectionLayout.addStretch(1)
 
 
         self.leftLayout.addLayout(self.selectionLayout)

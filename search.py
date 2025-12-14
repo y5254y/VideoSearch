@@ -28,6 +28,22 @@ class AISearchEngine:
         self._clip_processor = None
         self._yolo_model = None
         self._device = None
+        self._message_callback = None
+    
+    def set_message_callback(self, callback):
+        """Set a callback for sending messages (like model download status)."""
+        self._message_callback = callback
+    
+    def _send_message(self, key, params=None):
+        """Send a message through the callback if it exists."""
+        if self._message_callback:
+            try:
+                if params:
+                    self._message_callback((key, params))
+                else:
+                    self._message_callback(key)
+            except Exception:
+                pass
 
     def _ensure_clip_loaded(self):
         """Lazy load CLIP model and processor."""
@@ -35,6 +51,9 @@ class AISearchEngine:
             import torch
             from transformers import CLIPModel, CLIPProcessor
 
+            # Send model download message
+            self._send_message('downloading_model')
+            
             self._device = "cuda" if torch.cuda.is_available() else "cpu"
             self._clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
             self._clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
@@ -45,7 +64,29 @@ class AISearchEngine:
         """Lazy load YOLO model."""
         if self._yolo_model is None:
             from ultralytics import YOLO
+            
+            # Send model download message
+            self._send_message('downloading_model')
+            
             self._yolo_model = YOLO("yolov8n.pt")
+    
+    def get_supported_categories(self):
+        """Get all supported categories from YOLO model.
+        
+        Returns:
+            List of category names supported by the YOLO model.
+        """
+        # 保存当前回调状态
+        old_callback = self._message_callback
+        # 临时设置空回调以避免在加载模型时出错
+        self._message_callback = None
+        
+        try:
+            self._ensure_yolo_loaded()
+            return list(self._yolo_model.names.values())
+        finally:
+            # 恢复原始回调
+            self._message_callback = old_callback
 
     def _get_clip_image_embedding(self, image):
         """Get CLIP embedding for an image (PIL Image or numpy array)."""
@@ -95,6 +136,7 @@ class AISearchEngine:
         confidence_threshold: float = 0.5,
         progress_callback: Optional[Callable[[str, int, int], None]] = None,
         stop_check: Optional[Callable[[], bool]] = None,
+        message_callback: Optional[Callable[[object], None]] = None,
     ) -> Generator[Tuple[str, int, float], None, None]:
         """
         Search videos for matches based on the specified mode.
@@ -109,24 +151,35 @@ class AISearchEngine:
             similarity_threshold: Minimum similarity score for CLIP matches.
             confidence_threshold: Minimum confidence for YOLO detections.
             progress_callback: optional callback called as progress_callback(video_path, processed_count, total_samples)
+            message_callback: optional callback for sending messages (like "extracting_frames")
 
         Yields:
             Tuples of (video_path, timestamp_ms, score) for each match found.
         """
         import cv2
-
-        if mode == 'image':
-            yield from self._search_by_image(
-                video_paths, query_images, sample_interval_s, similarity_threshold, progress_callback, stop_check
-            )
-        elif mode == 'text':
-            yield from self._search_by_text(
-                video_paths, query_text, sample_interval_s, similarity_threshold, progress_callback, stop_check
-            )
-        elif mode == 'category':
-            yield from self._search_by_category(
-                video_paths, query_category, sample_interval_s, confidence_threshold, progress_callback, stop_check
-            )
+        import os
+        
+        # Set the message callback for this search operation
+        old_callback = self._message_callback
+        if message_callback:
+            self.set_message_callback(message_callback)
+        
+        try:
+            if mode == 'image':
+                yield from self._search_by_image(
+                    video_paths, query_images, sample_interval_s, similarity_threshold, progress_callback, stop_check
+                )
+            elif mode == 'text':
+                yield from self._search_by_text(
+                    video_paths, query_text, sample_interval_s, similarity_threshold, progress_callback, stop_check
+                )
+            elif mode == 'category':
+                yield from self._search_by_category(
+                    video_paths, query_category, sample_interval_s, confidence_threshold, progress_callback, stop_check
+                )
+        finally:
+            # Restore the old callback
+            self.set_message_callback(old_callback)
 
     def _search_by_image(
         self,
@@ -164,6 +217,10 @@ class AISearchEngine:
             # check stop request before opening heavy resources
             if stop_check and stop_check():
                 return
+                
+            # Send frame extraction message
+            import os
+            self._send_message('extracting_frames', {'name': os.path.basename(video_path)})
 
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():
@@ -249,6 +306,10 @@ class AISearchEngine:
         for video_path in video_paths:
             if stop_check and stop_check():
                 return
+                
+            # Send frame extraction message
+            import os
+            self._send_message('extracting_frames', {'name': os.path.basename(video_path)})
 
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():
@@ -329,6 +390,10 @@ class AISearchEngine:
         for video_path in video_paths:
             if stop_check and stop_check():
                 return
+                
+            # Send frame extraction message
+            import os
+            self._send_message('extracting_frames', {'name': os.path.basename(video_path)})
 
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():

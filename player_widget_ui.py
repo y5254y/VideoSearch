@@ -103,10 +103,10 @@ class Ui_PlayerWidget(object):
     # setupUi
 
     def retranslateUi(self, PlayerWidget):
-        self.playButton.setText(QCoreApplication.translate("PlayerWidget", u"Play", None))
-        self.stopButton.setText(QCoreApplication.translate("PlayerWidget", u"Stop", None))
+        self.playButton.setText("")
+        self.stopButton.setText("")
         self.playbackTimeLabel.setText(QCoreApplication.translate("PlayerWidget", u"00:00/00:00", None))
         self.bufferLabel.setText("")
-        self.fullscreenButton.setText(QCoreApplication.translate("PlayerWidget", u"Fullscreen", None))
+        self.fullscreenButton.setText("⛶")
         pass
     # retranslateUi

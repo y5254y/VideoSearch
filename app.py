@@ -6,7 +6,8 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QListWidget, QListWidgetItem, QFileDialog, QHBoxLayout, QVBoxLayout,
     QLineEdit, QComboBox, QMessageBox, QSizePolicy, QSplitter,
-    QRadioButton, QButtonGroup, QSlider, QProgressBar, QTextBrowser, QListView
+    QRadioButton, QButtonGroup, QSlider, QProgressBar, QTextBrowser, QListView,
+    QDialog
 )
 from PySide6.QtGui import QPixmap, QImage, QIcon, QAction, QPainter, QPolygon, QColor
 from PySide6.QtCore import QPoint
@@ -44,7 +45,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 允许窗口大小调整
         self.setMinimumSize(800, 600)
         
-        # 隐藏默认标题栏，使用自定义标题栏
+        # 使用自定义标题栏，去掉默认标题栏
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         
@@ -97,6 +98,8 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 分类选择框设置为可编辑
         self.combo_category.setEditable(True)
+        # 添加分类提示功能
+        self._init_category_hint()
         
         # 移除了清除按钮以简化界面
         
@@ -297,6 +300,60 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 设置优化标签样式已移至QSS文件中
                 
+    def _init_category_hint(self):
+        """初始化分类提示功能"""
+        # 创建一个信息按钮，点击时显示支持的类别
+        self.btn_category_info = QPushButton("i")
+        self.btn_category_info.setObjectName("btn_category_info")
+        self.btn_category_info.setToolTip("查看所有支持的类别")
+        self.btn_category_info.setFixedSize(24, 24)
+        self.btn_category_info.clicked.connect(self._show_supported_categories)
+        
+        # 将信息按钮添加到分类选择控件旁边
+        category_row = self.selectionLayout.indexOf(self.combo_category)
+        if category_row != -1:
+            # 找到分类选择框的布局项
+            category_item = self.selectionLayout.itemAt(category_row)
+            if category_item.widget() == self.combo_category:
+                # 在分类选择框后面添加信息按钮
+                self.selectionLayout.insertWidget(category_row + 1, self.btn_category_info)
+    
+    def _show_supported_categories(self):
+        """显示YOLO支持的所有类别"""
+        try:
+            # 获取支持的类别
+            categories = self.search_engine.get_supported_categories()
+            
+            # 创建一个对话框来显示类别
+            category_dialog = QDialog(self)
+            category_dialog.setWindowTitle("支持的类别")
+            category_dialog.resize(400, 500)
+            
+            # 创建布局
+            layout = QVBoxLayout(category_dialog)
+            
+            # 添加说明文本
+            label = QLabel("YOLO模型支持以下检测类别：")
+            label.setWordWrap(True)
+            layout.addWidget(label)
+            
+            # 创建列表视图显示类别
+            category_list = QListWidget()
+            category_list.addItems(categories)
+            category_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+            layout.addWidget(category_list)
+            
+            # 添加关闭按钮
+            btn_close = QPushButton("关闭")
+            btn_close.clicked.connect(category_dialog.close)
+            layout.addWidget(btn_close)
+            
+            # 显示对话框
+            category_dialog.exec()
+        except Exception as e:
+            # 如果加载模型失败，显示错误信息
+            QMessageBox.warning(self, "提示", f"无法加载类别列表：{str(e)}")
+    
     def _init_responsive_layout(self):
         """初始化响应式布局"""
         # 设置splitter的拉伸因子
@@ -458,14 +515,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # self.btn_clear_images.setText(self._t('clear_images'))
         self.btn_search.setText(self._t('search'))
         
-        # 更新播放器按钮文本
-        if self.player_widget:
-            try:
-                self.player_widget.playButton.setText(self._t('play'))
-                # self.player_widget.pauseButton.setText(self._t('pause'))
-                self.player_widget.stopButton.setText(self._t('stop'))
-            except Exception:
-                pass
+        
         
         # 更新标签文本
         self.lbl_selected_videos.setText(self._t('selected_videos'))
@@ -1039,19 +1089,36 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
 
 def main():
     """应用入口"""
+    print("启动应用程序...")
+    # 启用高DPI支持（针对PySide6 6.x版本的最佳实践）
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    # 在PySide6 6.x中，AA_EnableHighDpiScaling和AA_UseHighDpiPixmaps已被弃用，
+    # 因为它们的功能现在已经成为默认行为，但我们仍然保留它们以确保向后兼容性
+    try:
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    except AttributeError:
+        pass  # 如果这些属性在未来版本中被完全移除，我们会跳过它们
+    
     app = QApplication(sys.argv)
+    print("创建QApplication实例成功")
     
     # 应用样式
     _apply_styles(app)
+    print("应用样式成功")
     
     # 创建并显示主窗口
     window = VideoSearchApp()
+    print("创建主窗口实例成功")
     window.show()
+    print("显示主窗口成功")
     
     # 设置初始分屏大小
     _set_initial_splitter_sizes(window)
+    print("设置初始分屏大小成功")
     
     # 运行应用
+    print("开始运行应用程序事件循环...")
     sys.exit(app.exec())
 
 def _apply_styles(app):

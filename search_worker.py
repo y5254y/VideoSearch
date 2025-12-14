@@ -87,6 +87,10 @@ class SearchWorker(QThread):
                         kwargs['similarity_threshold'] = self.score_threshold
                     elif self.mode == 'category':
                         kwargs['confidence_threshold'] = self.score_threshold
+                        
+                    # Create a message callback that forwards to our message signal
+                    def _message_callback(msg):
+                        self.message.emit(msg)
 
                     gen = self.search_engine.search(
                         video_paths=[video],
@@ -96,6 +100,7 @@ class SearchWorker(QThread):
                         query_category=self.query_category if self.mode == 'category' else None,
                         progress_callback=_progress_callback,
                         stop_check=lambda: self._stopped,
+                        message_callback=_message_callback,
                         **kwargs
                     )
 
