@@ -10,8 +10,7 @@ from PySide6.QtWidgets import (
     QDialog
 )
 from PySide6.QtGui import QPixmap, QImage, QIcon, QAction, QPainter, QPolygon, QColor
-from PySide6.QtCore import QPoint
-from PySide6.QtCore import Qt, QUrl, QSize, QTimer
+from PySide6.QtCore import QPoint, Qt, QUrl, QSize, QTimer, QEvent
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QVideoWidget
 
@@ -24,6 +23,7 @@ from widgets.result_card import ResultCard
 from search import AISearchEngine, format_ms
 from translations import TRANSLATIONS
 from search_worker import SearchWorker
+from category_mappings import translate_category, get_translated_categories
 
 # 确保资源文件被加载
 try:
@@ -85,7 +85,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.lang_combo.setToolTip(self._t('language'))
         
         # 将语言选择组合框添加到自定义标题栏
-        self.title_bar.layout().insertWidget(1, self.lang_combo)
+        self.title_bar.layout().insertWidget(2, self.lang_combo)
         
         # 样式已移至QSS文件中
         
@@ -98,16 +98,16 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 分类选择框设置为可编辑
         self.combo_category.setEditable(True)
+        # 为combo_category安装事件过滤器，实现获得焦点时自动打开下拉列表
+        self.combo_category.installEventFilter(self)
         # 添加分类提示功能
         self._init_category_hint()
         
         # 移除了清除按钮以简化界面
         
-        # 设置列表视图为图标模式，支持缩略图显示
-        self.list_videos.setViewMode(QListWidget.IconMode)
-        self.list_videos.setIconSize(QSize(80, 60))
-        self.list_videos.setResizeMode(QListWidget.Adjust)
-        self.list_videos.setSpacing(12)
+        # 设置列表视图为列表模式，仅显示文本
+        self.list_videos.setViewMode(QListWidget.ListMode)
+        self.list_videos.setSpacing(2)
         
         self.list_images.setViewMode(QListWidget.IconMode)
         self.list_images.setIconSize(QSize(80, 60))
@@ -128,6 +128,9 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 初始化响应式布局
         self._init_responsive_layout()
+        
+        # 添加排序选项
+        self._init_sorting_options()
     
     def _create_custom_title_bar(self):
         """创建自定义标题栏"""
@@ -136,7 +139,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.title_bar.setObjectName("title_bar")
         
         # 设置标题栏高度
-        self.title_bar.setFixedHeight(50)
+        self.title_bar.setFixedHeight(60)
         
         # 创建标题栏布局
         layout = QHBoxLayout()
@@ -301,22 +304,21 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 设置优化标签样式已移至QSS文件中
                 
     def _init_category_hint(self):
-        """初始化分类提示功能"""
-        # 创建一个信息按钮，点击时显示支持的类别
-        self.btn_category_info = QPushButton("i")
-        self.btn_category_info.setObjectName("btn_category_info")
-        self.btn_category_info.setToolTip("查看所有支持的类别")
-        self.btn_category_info.setFixedSize(24, 24)
-        self.btn_category_info.clicked.connect(self._show_supported_categories)
-        
-        # 将信息按钮添加到分类选择控件旁边
-        category_row = self.selectionLayout.indexOf(self.combo_category)
-        if category_row != -1:
-            # 找到分类选择框的布局项
-            category_item = self.selectionLayout.itemAt(category_row)
-            if category_item.widget() == self.combo_category:
-                # 在分类选择框后面添加信息按钮
-                self.selectionLayout.insertWidget(category_row + 1, self.btn_category_info)
+        """初始化分类提示功能，将YOLO支持的类别直接添加到下拉框中"""
+        try:
+            # 获取支持的类别
+            categories = self.search_engine.get_supported_categories()
+            
+            # 清空下拉框
+            self.combo_category.clear()
+            
+            # 根据当前语言翻译类别并添加到下拉框中
+            for category in categories:
+                translated_category = translate_category(category, self.lang)
+                self.combo_category.addItem(translated_category)
+        except Exception as e:
+            # 如果加载类别失败，不影响程序运行
+            print(f"无法加载类别列表：{str(e)}")
     
     def _show_supported_categories(self):
         """显示YOLO支持的所有类别"""
@@ -416,6 +418,121 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 设置间距，确保卡片之间有足够的空间
         self.list_results.setSpacing(16)
     
+    def _init_sorting_options(self):
+        """初始化排序选项UI"""
+        # 创建排序标签
+        self.lbl_sort = QLabel(self._t('sort_by'))
+        
+        # 创建排序下拉框
+        self.combo_sort = QComboBox()
+        self.combo_sort.addItem(self._t('sort_by_score'), 'score')
+        self.combo_sort.addItem(self._t('sort_by_time'), 'time')
+        
+        # 设置默认排序为按评分排序
+        self.combo_sort.setCurrentIndex(0)
+        
+        # 连接排序选择信号
+        self.combo_sort.currentIndexChanged.connect(self._on_sort_changed)
+        
+        # 获取lbl_results的父布局
+        layout = self.lbl_results.parent().layout()
+        if layout:
+            # 在lbl_results之后添加排序控件
+            index = layout.indexOf(self.lbl_results)
+            if index >= 0:
+                layout.insertWidget(index + 1, self.lbl_sort)
+                layout.insertWidget(index + 2, self.combo_sort)
+        
+        # 初始排序（默认按评分从高到低）
+        self._sort_results('score', reverse=True)
+    
+    def _on_sort_changed(self, index):
+        """处理排序选择变化"""
+        sort_by = self.combo_sort.currentData()
+        # 按评分排序默认从高到低，按时间排序默认从低到高（时间顺序）
+        reverse = (sort_by == 'score')
+        self._sort_results(sort_by, reverse)
+    
+    def _sort_results(self, sort_by, reverse=False):
+        """对搜索结果进行排序"""
+        if self.list_results.count() <= 1:
+            return
+        
+        # 获取所有结果项的数据（保存创建Widget所需的数据）
+        items_data = []
+        for i in range(self.list_results.count()):
+            item = self.list_results.item(i)
+            if not item:
+                continue
+            
+            # 获取UserRole数据（视频路径和时间戳）
+            user_data = item.data(Qt.ItemDataRole.UserRole)
+            if not user_data:
+                continue
+            
+            # 获取Widget和分数
+            widget = self.list_results.itemWidget(item)
+            score = widget.score if (widget and hasattr(widget, 'score')) else 0.0
+            
+            # 获取排序键
+            if sort_by == 'score':
+                sort_key = score
+            else:  # 'time'
+                sort_key = user_data[1]  # timestamp_ms
+            
+            # 保存创建Widget所需的所有数据（不包括缩略图，排序时重新生成）
+            video_path, timestamp_ms = user_data
+            items_data.append((sort_key, video_path, timestamp_ms, score))
+        
+        # 如果没有找到任何有效的项，直接返回
+        if not items_data:
+            return
+        
+        # 排序
+        items_data.sort(key=lambda x: x[0], reverse=reverse)
+        
+        # 清空列表
+        self.list_results.clear()
+        
+        # 获取当前网格大小
+        grid_size = self.list_results.gridSize()
+        
+        # 重新添加所有项
+        for sort_key, video_path, timestamp_ms, score in items_data:
+            try:
+                # 重新生成视频缩略图
+                thumb = self._get_video_thumbnail(video_path, timestamp_ms)
+                
+                # 创建结果卡片
+                card = ResultCard(video_path=video_path, timestamp_ms=timestamp_ms, score=score, thumbnail=thumb)
+                
+                # 根据网格大小调整卡片大小
+                card.setFixedWidth(grid_size.width())
+                
+                # 创建列表项
+                lw_item = QListWidgetItem()
+                
+                # 设置项目大小与卡片大小匹配
+                item_height = max(150, grid_size.height())
+                lw_item.setSizeHint(QSize(grid_size.width(), item_height))
+                
+                # 设置UserRole数据
+                lw_item.setData(Qt.ItemDataRole.UserRole, (video_path, timestamp_ms))
+                
+                # 添加结果到列表
+                self.list_results.addItem(lw_item)
+                self.list_results.setItemWidget(lw_item, card)
+                
+                # 连接卡片点击事件
+                card.clicked.connect(self.on_result_card_clicked)
+            except Exception as e:
+                print(f"Error creating result card during sort: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # 更新搜索结果数量显示
+        self.lbl_results.setText(f"{self._t('results')} ({self.list_results.count()})")
+    
     def _connect_signals(self):
         """连接UI信号和槽函数"""
         # 语言选择
@@ -424,7 +541,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 搜索模式切换
         self.rb_image.toggled.connect(self.update_search_mode_ui)
         self.rb_category.toggled.connect(self.update_search_mode_ui)
-        self.rb_text.toggled.connect(self.update_search_mode_ui)
         
         # 列表双击事件
         self.list_videos.itemDoubleClicked.connect(self.on_video_double_clicked)
@@ -437,6 +553,9 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 滑块值变化
         self.slider.valueChanged.connect(self._on_slider_changed)
+        
+        # 分类选择完成后切换焦点到搜索按钮
+        self.combo_category.activated.connect(self._on_category_selected)
     
     def _apply_initial_settings(self):
         """应用初始设置"""
@@ -450,13 +569,34 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 应用初始语言
         self.change_language(0)
     
+    def eventFilter(self, obj, event):
+        """事件过滤器，用于处理combo_category的焦点事件"""
+        if obj is self.combo_category:
+            if event.type() == QEvent.FocusIn:
+                # 只在用户主动点击或通过键盘聚焦时才打开下拉列表，避免自动触发
+                if event.reason() in [Qt.MouseFocusReason, Qt.TabFocusReason, Qt.BacktabFocusReason]:
+                    # 当获得焦点时，延迟打开下拉列表，确保焦点已完全切换
+                    QTimer.singleShot(100, lambda: self.combo_category.showPopup())
+        return super().eventFilter(obj, event)
+    
+    def _on_category_selected(self):
+        """当选择类别后，关闭下拉框并将焦点切换到搜索按钮"""
+        # 先关闭下拉框，再切换焦点
+        self.combo_category.hidePopup()
+        # 将焦点切换到搜索按钮
+        self.btn_search.setFocus()
+        
+    
     # -------------- UI控制方法 --------------
     def update_search_mode_ui(self):
         """根据选择的搜索模式更新UI控件的可见性和可用性"""
         # 检查单选按钮状态
         image_mode = self.rb_image.isChecked()
         category_mode = self.rb_category.isChecked()
-        text_mode = self.rb_text.isChecked()
+        text_mode = False  # 文字搜索功能已隐藏
+        
+        # 隐藏文字搜索单选按钮
+        self.rb_text.setVisible(False)
         
         # 根据搜索模式隐藏/显示相关控件
         # 图片搜索模式: 显示视频选择、图片选择；隐藏类别选择、文字查询
@@ -480,11 +620,82 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             control.setVisible(category_mode)
             control.setEnabled(category_mode)
         
-        # 文本搜索相关控件
+        # 当切换到类别搜索模式时，确保下拉框中有类别项
+        if category_mode and self.combo_category.count() == 0:
+            try:
+                # 获取支持的类别
+                categories = self.search_engine.get_supported_categories()
+                
+                # 将类别添加到下拉框中
+                for category in categories:
+                    self.combo_category.addItem(category)
+            except Exception as e:
+                # 如果加载类别失败，不影响程序运行
+                print(f"无法加载类别列表：{str(e)}")
+        
+        # 移除可能影响下拉按钮显示的自定义样式
+        if hasattr(self.combo_category, 'setStyleSheet'):
+            # 设置明确的下拉框样式，确保下拉按钮和箭头可见
+            self.combo_category.setStyleSheet("""
+                QComboBox {
+                    border: 1px solid #e0e0e0;
+                    border-radius: 4px;
+                    padding: 6px;
+                    background-color: white;
+                }
+                QComboBox::drop-down {
+                    subcontrol-origin: padding;
+                    subcontrol-position: top right;
+                    width: 20px;
+                    border-left: 1px solid #e0e0e0;
+                    border-top-right-radius: 4px;
+                    border-bottom-right-radius: 4px;
+                    background-color: transparent;
+                }
+                QComboBox::down-arrow {
+                    image: none;
+                    border-style: solid;
+                    border-width: 5px 4px 0 4px;
+                    border-color: #999999 transparent transparent transparent;
+                    width: 0;
+                    height: 0;
+                    margin: 6px;
+                }
+                QComboBox::down-arrow:hover {
+                    border-color: #555555 transparent transparent transparent;
+                }
+                QComboBox QAbstractItemView {
+                    border: 1px solid #e0e0e0;
+                    border-radius: 4px;
+                    background-color: white;
+                    selection-background-color: #e3f2fd;
+                    selection-color: #202124;
+                }
+            """)
+        
+        # 确保QComboBox处于可下拉状态
+        self.combo_category.setEditable(True)
+        self.combo_category.setFocusPolicy(Qt.StrongFocus)
+        self.combo_category.setDisabled(False)
+        
+        # 确保下拉框视图正确设置
+        view = self.combo_category.view()
+        view.setFixedWidth(self.combo_category.width())
+        view.setMaximumHeight(200)
+        view.setStyleSheet("background-color: white;")
+        
+        # 确保模型数据正确
+        if self.combo_category.count() > 0:
+            self.combo_category.setCurrentIndex(0)
+        
+        # 显式触发下拉框的显示
+        self.combo_category.view().setVisible(True)
+        
+        # 文本搜索相关控件（始终隐藏）
         text_controls = [self.input_text, self.lbl_text_query]
         for control in text_controls:
-            control.setVisible(text_mode)
-            control.setEnabled(text_mode)
+            control.setVisible(False)
+            control.setEnabled(False)
         
 
         
@@ -492,8 +703,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         mode = self._get_search_mode()
         mode_hints = {
             'image': self._t('mode_hint_image'),
-            'category': self._t('mode_hint_category'),
-            'text': self._t('mode_hint_text')
+            'category': self._t('mode_hint_category')
         }
         self.lbl_mode_hint.setText(mode_hints.get(mode, self._t('mode_hint_select')))
     
@@ -527,10 +737,8 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 更新语言选择组合框的工具提示
         self.lang_combo.setToolTip(self._t('language'))
         
-        # 更新分类列表
-        self.combo_category.clear()
-        for c in self._t('categories'):
-            self.combo_category.addItem(c)
+        # 不再从翻译文件更新分类列表，而是保持显示所有YOLO支持的类别
+        # 这确保了combo_category始终显示完整的YOLO类别列表
         
         # 更新搜索模式标签
         self.rb_image.setText(self._t('search_mode_image'))
@@ -539,10 +747,20 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 更新分数标签
         self._update_score_label()
+        
+        # 更新类别下拉框的显示，根据新的语言翻译类别
+        # 保存当前选择的类别
+        current_category = self.combo_category.currentText()
+        # 重新初始化类别下拉框
+        self._init_category_hint()
+        # 尝试重新选择之前的类别（如果存在的话）
+        index = self.combo_category.findText(current_category)
+        if index >= 0:
+            self.combo_category.setCurrentIndex(index)
     
     def _update_score_label(self):
-        """更新分数标签"""
-        self.lbl_score.setText(f"{self._t('score_threshold')}: {self.slider.value()/100:.2f}")
+        """更新分数标签，显示为百分数"""
+        self.lbl_score.setText(f"{self._t('score_threshold')}: {self.slider.value()}%")
     
     # -------------- 文件选择方法 --------------
     def select_videos(self):
@@ -555,34 +773,10 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             for f in files:
                 filename = os.path.basename(f)  # 只显示文件名
                 
-                # 尝试从视频中提取缩略图
-                try:
-                    # 创建临时图像用于存储缩略图
-                    thumbnail = QImage()
-                    
-                    # 使用QPixmap创建一个简单的视频图标作为备用
-                    pixmap = QPixmap(80, 60)
-                    pixmap.fill(QColor(41, 111, 246))  # 使用应用主题色
-                    
-                    # 在图标上绘制播放符号
-                    painter = QPainter(pixmap)
-                    painter.setBrush(QColor(255, 255, 255))  # 白色播放符号
-                    painter.drawPolygon(
-                        QPolygon([
-                            QPoint(30, 20),
-                            QPoint(55, 30),
-                            QPoint(30, 40)
-                        ])
-                    )
-                    painter.end()
-                    
-                    item = QListWidgetItem(QIcon(pixmap), filename)
-                except Exception as e:
-                    # 如果提取失败，使用默认图标
-                    item = QListWidgetItem(filename)
+                # 创建文本项，不使用图标
+                item = QListWidgetItem(filename)
                 
                 item.setToolTip(f)  # 鼠标悬停显示完整路径
-                item.setTextAlignment(Qt.AlignCenter)
                 self.list_videos.addItem(item)
     
     def select_images(self):
@@ -667,6 +861,10 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         if search_params is None:
             return
         
+        # 禁用搜索模式切换按钮
+        self.rb_image.setEnabled(False)
+        self.rb_category.setEnabled(False)
+        
         # 初始化搜索状态
         self._init_search_state()
         
@@ -684,8 +882,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             return 'image'
         elif self.rb_category.isChecked():
             return 'category'
-        elif self.rb_text.isChecked():
-            return 'text'
         return None
     
     def _prepare_search_params(self, mode):
@@ -705,7 +901,9 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             if not query_category:
                 QMessageBox.warning(self, self._t('no_videos'), self._t('need_category'))
                 return None
-            params['query_category'] = query_category
+            # 将用户选择的类别转换为英文，因为模型只支持英文
+            english_category = translate_category(query_category, 'en')
+            params['query_category'] = english_category
         elif mode == 'text':
             query_text = self.input_text.text().strip()
             if not query_text:
@@ -772,6 +970,10 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             # 停止按钮旋转动画
             self._stop_button_spinner()
             
+            # 启用搜索模式切换按钮
+            self.rb_image.setEnabled(True)
+            self.rb_category.setEnabled(True)
+            
             # 直接更新搜索按钮状态
             try:
                 self.btn_search.setText(self._t('search'))
@@ -784,6 +986,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         """处理找到的匹配结果"""
         # 过滤低于阈值的结果
         threshold = self.slider.value() / 100.0
+        
         if score < threshold:
             return
         
@@ -825,8 +1028,17 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     
     def _on_search_finished(self):
         """搜索完成处理"""
-        # 重置搜索状态
-        self._reset_search_state()
+        # 搜索完成后自动排序（默认按评分从高到低）
+        self._sort_results('score', reverse=True)
+        
+        # 重置搜索状态（不重置结果数量显示）
+        self.btn_search.setEnabled(True)
+        self.search_worker = None
+        self._stop_button_spinner()
+        
+        # 启用搜索模式切换按钮
+        self.rb_image.setEnabled(True)
+        self.rb_category.setEnabled(True)
         
         # 确保按钮文本恢复为"搜索"
         try:
@@ -872,14 +1084,35 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         try:
             if isinstance(msg, (list, tuple)) and len(msg) == 2:
                 key, params = msg
-                tpl = self._t(key) or ''
-                text = tpl.format(**params)
+                
+                # 优化不同类型消息的显示格式
+                if key == 'downloading_model':
+                    text = f"<span style=\"color:blue;\">{self._t('downloading_model')}</span>"
+                elif key == 'searching_video':
+                    text = f"<span style=\"color:green;\">{self._t('processing_video')}</span>: {params['name']} ({params['idx']}/{params['total']})"
+                elif key == 'found_match':
+                    # 使用翻译模板格式化内容
+                    tpl = self._t('found_match')
+                    text = tpl.format(**params)
+                    text = f"<span style=\"color:green;\">{text}</span>"
+                else:
+                    # 其他类型消息使用默认格式
+                    tpl = self._t(key) or ''
+                    text = tpl.format(**params)
+                    text = f"<span style=\"color:black;\">{text}</span>"
             else:
-                text = str(msg)
+                # 字符串消息，尝试识别并优化
+                msg_str = str(msg)
+                if 'download' in msg_str.lower():
+                    text = f"<span style=\"color:blue;\">{msg_str}</span>"
+                elif 'process' in msg_str.lower() or 'search' in msg_str.lower():
+                    text = f"<span style=\"color:green;\">{msg_str}</span>"
+                else:
+                    text = f"<span style=\"color:black;\">{msg_str}</span>"
             
-            self.txt_log.append(f"<span style=\"color:black;\">{text}</span>")
-        except Exception:
-            self.txt_log.append(str(msg))
+            self.txt_log.append(text)
+        except Exception as e:
+            self.txt_log.append(f"<span style=\"color:red;\">Error processing message: {e}</span>")
     
     # -------------- 视频播放处理 --------------
     def on_video_double_clicked(self, item):
@@ -1048,7 +1281,9 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             if not query_category:
                 QMessageBox.warning(self, self._t('no_videos'), self._t('need_category'))
                 return None
-            params['query_category'] = query_category
+            # 将用户选择的类别转换为英文，因为模型只支持英文
+            english_category = translate_category(query_category, 'en')
+            params['query_category'] = english_category
         elif mode == 'text':
             query_text = self.input_text.text().strip()
             if not query_text:
