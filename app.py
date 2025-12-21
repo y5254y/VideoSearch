@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import requests
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QListWidget, QListWidgetItem, QFileDialog, QHBoxLayout, QVBoxLayout,
@@ -18,6 +19,7 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from player_widget import PlayerWidget
 from main_ui import Ui_MainWindow
 from widgets.result_card import ResultCard
+from login_window import LoginWindow
 
 # 导入搜索和工具模块
 from search import AISearchEngine, format_ms
@@ -32,7 +34,7 @@ except Exception:
     pass
 
 class VideoSearchApp(QMainWindow, Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, token=None, user_info=None):
         super().__init__()
         self.setupUi(self)
         
@@ -48,6 +50,16 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 使用自定义标题栏，去掉默认标题栏
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        # 初始化用户服务
+        from user_service import UserService
+        self.user_service = UserService()
+        
+        # 用户认证状态
+        self.is_logged_in = token is not None and user_info is not None
+        self.token = token
+        self.user_info = user_info
+        self.api_base_url = "http://101.35.2.102:8000/api/v1"
         
         # 初始化应用状态
         self.lang = 'zh'  # 默认语言
@@ -165,6 +177,24 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 添加控件到布局
         layout.addWidget(self.title_label)
         layout.addStretch(1)
+        
+        # 创建用户信息标签和签到按钮
+        if self.is_logged_in and self.user_info:
+            # 用户信息标签
+            username = self.user_info.get('username', '用户')
+            points = self.user_info.get('points', 0)
+            self.user_info_label = QLabel(f"{username} - {points} 积分")
+            self.user_info_label.setStyleSheet("color: white; padding: 0 10px; font-size: 12px;")
+            layout.addWidget(self.user_info_label)
+            
+            # 签到按钮
+            self.btn_check_in = QPushButton("签到")
+            self.btn_check_in.setObjectName("btn_check_in")
+            self.btn_check_in.setStyleSheet("color: white; padding: 0 10px; font-size: 12px; background-color: transparent;")
+            self.btn_check_in.setCursor(Qt.PointingHandCursor)
+            self.btn_check_in.clicked.connect(self.on_check_in_clicked)
+            layout.addWidget(self.btn_check_in)
+        
         layout.addWidget(self.btn_minimize)
         layout.addWidget(self.btn_maximize)
         layout.addWidget(self.btn_close)
@@ -826,6 +856,11 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             print("Stopping search...")
             self.on_stop_search()
         else:
+            # 检查用户是否已登录
+            if not self.is_logged_in:
+                QMessageBox.warning(self, "未登录", "请先登录后再使用搜索功能")
+                return
+            
             # 立即更新按钮状态为停止搜索，然后再开始搜索
             print("Starting search...")
             # 保存原始按钮文本
@@ -1133,6 +1168,26 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         if video_path and timestamp_ms is not None and self.player_widget:
             self.player_widget.play(video_path, timestamp_ms)
     
+    def on_check_in_clicked(self):
+        """处理签到按钮点击事件"""
+        try:
+            # 调用签到API
+            success, message = self.user_service.check_in()
+            
+            if success:
+                # 更新用户信息
+                self.user_info = self.user_service.user_info
+                # 更新用户信息标签
+                if hasattr(self, 'user_info_label'):
+                    username = self.user_info.get('username', '用户')
+                    points = self.user_info.get('points', 0)
+                    self.user_info_label.setText(f"{username} - {points} 积分")
+                QMessageBox.information(self, "签到成功", message)
+            else:
+                QMessageBox.warning(self, "签到失败", message)
+        except Exception as e:
+            QMessageBox.warning(self, "签到失败", f"签到失败：{str(e)}")
+    
     # -------------- 辅助方法 --------------
     def _t(self, key):
         """获取翻译文本"""
@@ -1143,6 +1198,30 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self._update_score_label()
         self.config['score'] = val
         self._save_config()
+    
+    def on_check_in_clicked(self):
+        """处理签到按钮点击事件"""
+        try:
+            success, message = self.user_service.check_in()
+            if success:
+                QMessageBox.information(self, "签到成功", message)
+                # 更新用户信息
+                self.update_user_info()
+            else:
+                QMessageBox.warning(self, "签到失败", message)
+        except Exception as e:
+            QMessageBox.warning(self, "签到失败", f"签到过程中发生错误: {str(e)}")
+    
+    def update_user_info(self):
+        """更新用户信息显示"""
+        if hasattr(self, 'user_info_label'):
+            # 获取最新用户信息
+            success, user_info = self.user_service.get_user_info()
+            if success:
+                username = user_info.get('username', '用户')
+                points = user_info.get('points', 0)
+                self.user_info_label.setText(f"{username} - {points} 积分")
+                self.user_info = user_info
     
     def _get_video_thumbnail(self, path, timestamp_ms=0):
         """获取视频缩略图"""
@@ -1342,8 +1421,34 @@ def main():
     _apply_styles(app)
     print("应用样式成功")
     
+    # 显示登录窗口
+    from user_service import UserService
+    user_service = UserService()
+    
+    # 检查是否已登录
+    if not user_service.is_logged_in():
+        from login_window import LoginWindow
+        login_window = LoginWindow()
+        login_window.setWindowModality(Qt.ApplicationModal)  # 设置为模态窗口
+        login_window.exec()
+        
+        if not login_window.login_success:
+            print("用户取消登录，退出应用")
+            sys.exit(0)
+        
+        # 使用登录窗口返回的令牌和用户信息
+        token = login_window.get_token()
+        user_info = login_window.get_user_info()
+        
+        # 保存令牌
+        user_service._save_token(token, user_info)
+    else:
+        # 使用已保存的令牌和用户信息
+        token = user_service.token
+        user_info = user_service.user_info
+    
     # 创建并显示主窗口
-    window = VideoSearchApp()
+    window = VideoSearchApp(token=token, user_info=user_info)
     print("创建主窗口实例成功")
     window.show()
     print("显示主窗口成功")
