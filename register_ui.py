@@ -14,9 +14,9 @@ class Ui_RegisterWindow(object):
     def setupUi(self, RegisterWindow):
         if not RegisterWindow.objectName():
             RegisterWindow.setObjectName(u"RegisterWindow")
-        RegisterWindow.resize(420, 700)
-        RegisterWindow.setMinimumSize(420, 500)
-        RegisterWindow.setMaximumSize(420, 700)
+        RegisterWindow.resize(420, 600)
+        RegisterWindow.setMinimumSize(420, 450)
+        RegisterWindow.setMaximumSize(420, 600)
         self.centralwidget = QWidget(RegisterWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.mainLayout = QVBoxLayout(self.centralwidget)
@@ -46,8 +46,8 @@ class Ui_RegisterWindow(object):
         self.username_input = QLineEdit(self.centralwidget)
         self.username_input.setObjectName(u"username_input")
         self.username_input.setPlaceholderText("请输入用户名")
-        self.username_input.setStyleSheet("padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
-        self.username_input.setMinimumHeight(30)
+        self.username_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
+        self.username_input.setMinimumHeight(25)
         
         self.mainLayout.addWidget(self.username_input)
         
@@ -60,14 +60,31 @@ class Ui_RegisterWindow(object):
         
         self.mainLayout.addWidget(self.password_label)
         
+        # 创建密码输入框和显示/隐藏按钮的水平布局
+        self.password_layout = QHBoxLayout()
         self.password_input = QLineEdit(self.centralwidget)
         self.password_input.setObjectName(u"password_input")
         self.password_input.setPlaceholderText("请输入密码")
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setStyleSheet("padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
-        self.password_input.setMinimumHeight(30)
+        self.password_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-top-left-radius: 4px; border-bottom-left-radius: 4px; margin-bottom: 10px;")
+        self.password_input.setMinimumHeight(25)
         
-        self.mainLayout.addWidget(self.password_input)
+        # 密码显示/隐藏按钮
+        self.password_toggle = QPushButton(self.centralwidget)
+        self.password_toggle.setObjectName(u"password_toggle")
+        self.password_toggle.setText("👁")
+        self.password_toggle.setStyleSheet("background-color: #f5f5f5; border: 1px solid #ddd; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-bottom: 10px;")
+        self.password_toggle.setCursor(QCursor(Qt.PointingHandCursor))
+        self.password_toggle.setMinimumHeight(25)
+        self.password_toggle.setMaximumWidth(35)
+        
+        # 添加到布局
+        self.password_layout.addWidget(self.password_input)
+        self.password_layout.addWidget(self.password_toggle)
+        self.password_layout.setContentsMargins(0, 0, 0, 0)
+        self.password_layout.setSpacing(0)
+        
+        self.mainLayout.addLayout(self.password_layout)
         
         # 确认密码输入框
         self.confirm_password_label = QLabel(self.centralwidget)
@@ -78,14 +95,31 @@ class Ui_RegisterWindow(object):
         
         self.mainLayout.addWidget(self.confirm_password_label)
         
+        # 创建确认密码输入框和显示/隐藏按钮的水平布局
+        self.confirm_password_layout = QHBoxLayout()
         self.confirm_password_input = QLineEdit(self.centralwidget)
         self.confirm_password_input.setObjectName(u"confirm_password_input")
         self.confirm_password_input.setPlaceholderText("请再次输入密码")
         self.confirm_password_input.setEchoMode(QLineEdit.Password)
-        self.confirm_password_input.setStyleSheet("padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
-        self.confirm_password_input.setMinimumHeight(30)
+        self.confirm_password_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-top-left-radius: 4px; border-bottom-left-radius: 4px; margin-bottom: 10px;")
+        self.confirm_password_input.setMinimumHeight(25)
         
-        self.mainLayout.addWidget(self.confirm_password_input)
+        # 确认密码显示/隐藏按钮
+        self.confirm_password_toggle = QPushButton(self.centralwidget)
+        self.confirm_password_toggle.setObjectName(u"confirm_password_toggle")
+        self.confirm_password_toggle.setText("👁")
+        self.confirm_password_toggle.setStyleSheet("background-color: #f5f5f5; border: 1px solid #ddd; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-bottom: 10px;")
+        self.confirm_password_toggle.setCursor(QCursor(Qt.PointingHandCursor))
+        self.confirm_password_toggle.setMinimumHeight(25)
+        self.confirm_password_toggle.setMaximumWidth(35)
+        
+        # 添加到布局
+        self.confirm_password_layout.addWidget(self.confirm_password_input)
+        self.confirm_password_layout.addWidget(self.confirm_password_toggle)
+        self.confirm_password_layout.setContentsMargins(0, 0, 0, 0)
+        self.confirm_password_layout.setSpacing(0)
+        
+        self.mainLayout.addLayout(self.confirm_password_layout)
         
         # 邮箱输入框（可选）
         self.email_label = QLabel(self.centralwidget)
@@ -99,8 +133,8 @@ class Ui_RegisterWindow(object):
         self.email_input = QLineEdit(self.centralwidget)
         self.email_input.setObjectName(u"email_input")
         self.email_input.setPlaceholderText("请输入邮箱地址")
-        self.email_input.setStyleSheet("padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
-        self.email_input.setMinimumHeight(30)
+        self.email_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
+        self.email_input.setMinimumHeight(25)
         
         self.mainLayout.addWidget(self.email_input)
         

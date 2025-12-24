@@ -59,7 +59,8 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.is_logged_in = token is not None and user_info is not None
         self.token = token
         self.user_info = user_info
-        self.api_base_url = "http://101.35.2.102:8000/api/v1"
+        from config import API_BASE_URL
+        self.api_base_url = API_BASE_URL
         
         # 初始化应用状态
         self.lang = 'zh'  # 默认语言
@@ -178,23 +179,43 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         layout.addWidget(self.title_label)
         layout.addStretch(1)
         
-        # 创建用户信息标签和签到按钮
-        if self.is_logged_in and self.user_info:
-            # 用户信息标签
-            username = self.user_info.get('username', '用户')
-            points = self.user_info.get('points', 0)
-            self.user_info_label = QLabel(f"{username} - {points} 积分")
-            self.user_info_label.setStyleSheet("color: white; padding: 0 10px; font-size: 12px;")
-            layout.addWidget(self.user_info_label)
-            
-            # 签到按钮
-            self.btn_check_in = QPushButton("签到")
-            self.btn_check_in.setObjectName("btn_check_in")
-            self.btn_check_in.setStyleSheet("color: white; padding: 0 10px; font-size: 12px; background-color: transparent;")
-            self.btn_check_in.setCursor(Qt.PointingHandCursor)
-            self.btn_check_in.clicked.connect(self.on_check_in_clicked)
-            layout.addWidget(self.btn_check_in)
+        # 创建用户按钮，放在窗口控制按钮之前
+        self.user_button = QPushButton('登录')  # 直接在创建时设置文本
+        self.user_button.setObjectName("userButton")
         
+        # 设置简单明确的样式
+        self.user_button.setStyleSheet(
+            "QPushButton {" 
+            "    color: white;" 
+            "    background-color: #4285F4;" 
+            "    border: none;" 
+            "    border-radius: 4px;" 
+            "    padding: 8px 16px;" 
+            "    font-size: 14px;" 
+            "    font-weight: bold;" 
+            "    margin-right: 10px;" 
+            "    min-width: 80px;" 
+            "    min-height: 30px;" 
+            "}" 
+            "QPushButton:hover {" 
+            "    background-color: #3367D6;" 
+            "}"
+        )
+        
+        self.user_button.setCursor(Qt.PointingHandCursor)
+        
+        # 根据登录状态更新按钮文本
+        if self.is_logged_in and self.user_info:
+            username = self.user_info.get('username', '用户')
+            self.user_button.setText(username)
+        
+        # 连接点击事件
+        self.user_button.clicked.connect(self._on_user_button_clicked)
+        
+        # 将用户按钮添加到标题栏
+        layout.addWidget(self.user_button)
+        
+        # 添加窗口控制按钮
         layout.addWidget(self.btn_minimize)
         layout.addWidget(self.btn_maximize)
         layout.addWidget(self.btn_close)
@@ -1212,16 +1233,95 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         except Exception as e:
             QMessageBox.warning(self, "签到失败", f"签到过程中发生错误: {str(e)}")
     
+    def update_user_button_text(self):
+        if hasattr(self, 'user_button'):
+            if self.is_logged_in and self.user_info:
+                username = self.user_info.get('username', '用户')
+                self.user_button.setText(username)
+            else:
+                self.user_button.setText(self._t('login'))
+    
+    def _on_user_button_clicked(self):
+        """处理用户按钮点击事件"""
+        if self.is_logged_in:
+            # 显示用户信息窗口
+            dialog = QDialog(self)
+            dialog.setWindowTitle("用户信息")
+            layout = QVBoxLayout()
+            
+            # 添加用户信息
+            username = self.user_info.get('username', 'N/A')
+            email = self.user_info.get('email', 'N/A')
+            points = self.user_info.get('points', 0)
+            
+            layout.addWidget(QLabel(f"用户名: {username}"))
+            layout.addWidget(QLabel(f"邮箱: {email}"))
+            layout.addWidget(QLabel(f"积分: {points}"))
+            
+            # 添加操作按钮
+            btn_layout = QHBoxLayout()
+            
+            # 签到按钮
+            btn_checkin = QPushButton("签到")
+            btn_checkin.clicked.connect(self.on_check_in_clicked)
+            btn_layout.addWidget(btn_checkin)
+            
+            # 登出按钮
+            btn_logout = QPushButton("登出")
+            btn_logout.clicked.connect(lambda: self._on_logout(dialog))
+            btn_layout.addWidget(btn_logout)
+            
+            # 关闭按钮
+            btn_close = QPushButton("关闭")
+            btn_close.clicked.connect(dialog.close)
+            btn_layout.addWidget(btn_close)
+            
+            layout.addLayout(btn_layout)
+            dialog.setLayout(layout)
+            
+            # 显示对话框
+            dialog.exec()
+        else:
+            # 显示登录窗口
+            from login_window import LoginWindow
+            login_window = LoginWindow()
+            if login_window.exec():
+                # 登录成功后更新状态
+                self.token = login_window.get_token()
+                self.user_info = login_window.get_user_info()
+                self.is_logged_in = True
+                
+                # 更新用户按钮文本
+                self.update_user_button_text()
+                
+                # 更新用户服务的状态
+                self.user_service.save_login_state(self.token, self.user_info)
+    
+    def _on_logout(self, dialog):
+        """处理登出事件"""
+        # 清除登录状态
+        self.is_logged_in = False
+        self.token = None
+        self.user_info = None
+        
+        # 更新用户按钮文本
+        self.update_user_button_text()
+        
+        # 更新用户服务的状态
+        self.user_service.clear_login_state()
+        
+        # 关闭用户信息对话框
+        dialog.close()
+    
     def update_user_info(self):
         """更新用户信息显示"""
-        if hasattr(self, 'user_info_label'):
+        if self.is_logged_in:
             # 获取最新用户信息
             success, user_info = self.user_service.get_user_info()
             if success:
-                username = user_info.get('username', '用户')
-                points = user_info.get('points', 0)
-                self.user_info_label.setText(f"{username} - {points} 积分")
                 self.user_info = user_info
+                # 更新用户按钮文本
+                self.update_user_button_text()
     
     def _get_video_thumbnail(self, path, timestamp_ms=0):
         """获取视频缩略图"""
@@ -1421,31 +1521,18 @@ def main():
     _apply_styles(app)
     print("应用样式成功")
     
-    # 显示登录窗口
+    # 检查是否已登录
     from user_service import UserService
     user_service = UserService()
     
-    # 检查是否已登录
-    if not user_service.is_logged_in():
-        from login_window import LoginWindow
-        login_window = LoginWindow()
-        login_window.setWindowModality(Qt.ApplicationModal)  # 设置为模态窗口
-        login_window.exec()
-        
-        if not login_window.login_success:
-            print("用户取消登录，退出应用")
-            sys.exit(0)
-        
-        # 使用登录窗口返回的令牌和用户信息
-        token = login_window.get_token()
-        user_info = login_window.get_user_info()
-        
-        # 保存令牌
-        user_service._save_token(token, user_info)
-    else:
+    if user_service.is_logged_in():
         # 使用已保存的令牌和用户信息
         token = user_service.token
         user_info = user_service.user_info
+    else:
+        # 未登录状态，使用None
+        token = None
+        user_info = None
     
     # 创建并显示主窗口
     window = VideoSearchApp(token=token, user_info=user_info)

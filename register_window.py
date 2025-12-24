@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
-from PySide6.QtWidgets import QDialog, QMessageBox
+from PySide6.QtWidgets import QDialog, QMessageBox, QLineEdit
 from PySide6.QtCore import Qt
 from register_ui import Ui_RegisterWindow
 from user_service import UserService
@@ -18,9 +18,16 @@ class RegisterWindow(QDialog, Ui_RegisterWindow):
         # 注册成功信号
         self.register_success = False
         
+        # 密码显示状态
+        self.password_visible = False
+        self.confirm_password_visible = False
+        
         # 连接信号槽
         self.register_button.clicked.connect(self.on_register_clicked)
         self.login_button.clicked.connect(self.on_login_clicked)
+        # 密码显示/隐藏按钮点击事件
+        self.password_toggle.clicked.connect(self.toggle_password_visibility)
+        self.confirm_password_toggle.clicked.connect(self.toggle_confirm_password_visibility)
     
     def on_register_clicked(self):
         """处理注册按钮点击事件"""
@@ -46,6 +53,16 @@ class RegisterWindow(QDialog, Ui_RegisterWindow):
             self.status_label.setText("密码长度不能少于6位")
             return
         
+        # 验证邮箱
+        if not email:
+            self.status_label.setText("邮箱不能为空")
+            return
+        
+        # 简单的邮箱格式验证
+        if "@" not in email or "." not in email.split("@")[-1]:
+            self.status_label.setText("邮箱格式不正确")
+            return
+        
         try:
             # 调用注册API
             success, message = self.user_service.register(username, password, email)
@@ -63,3 +80,25 @@ class RegisterWindow(QDialog, Ui_RegisterWindow):
         """处理返回登录按钮点击事件"""
         self.register_success = False
         self.close()
+    
+    def toggle_password_visibility(self):
+        """切换密码显示/隐藏状态"""
+        self.password_visible = not self.password_visible
+        
+        if self.password_visible:
+            self.password_input.setEchoMode(QLineEdit.Normal)
+            self.password_toggle.setText("👁‍🗨")
+        else:
+            self.password_input.setEchoMode(QLineEdit.Password)
+            self.password_toggle.setText("👁")
+    
+    def toggle_confirm_password_visibility(self):
+        """切换确认密码显示/隐藏状态"""
+        self.confirm_password_visible = not self.confirm_password_visible
+        
+        if self.confirm_password_visible:
+            self.confirm_password_input.setEchoMode(QLineEdit.Normal)
+            self.confirm_password_toggle.setText("👁‍🗨")
+        else:
+            self.confirm_password_input.setEchoMode(QLineEdit.Password)
+            self.confirm_password_toggle.setText("👁")

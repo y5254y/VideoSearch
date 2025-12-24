@@ -3,14 +3,14 @@
 import requests
 import json
 import os
+from config import API_BASE_URL, APP_ID
 
 class UserService:
     def __init__(self):
-        self.base_url = "http://101.35.2.102:8000/api/v1"
+        self.base_url = API_BASE_URL
         self.token_path = os.path.join(os.path.expanduser('~'), '.videosearch_user_token.json')
         self.user_info = None
         self.token = None
-        
         # 加载保存的令牌
         self._load_token()
     
@@ -61,12 +61,16 @@ class UserService:
             response.raise_for_status()
             
             result = response.json()
-            token = result.get('token')
-            user_info = result.get('user')
+            token = result.get('access_token')
             
-            if token and user_info:
-                self._save_token(token, user_info)
-                return True, user_info
+            if token :
+                self.token = token
+                result, user_info = self.get_user_info()
+                if result:
+                    self._save_token(token, user_info)
+                    return True, user_info
+                else:
+                    return False, "获取用户信息失败"
             else:
                 return False, "登录失败：无效的响应数据"
         
@@ -100,16 +104,17 @@ class UserService:
             return False, "未登录"
         
         try:
-            url = f"{self.base_url}/user/info"
+            url = f"{self.base_url}/users/me"
             headers = {
-                "Authorization": f"Bearer {self.token}"
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json"
             }
             
             response = requests.get(url, headers=headers, timeout=5)
             response.raise_for_status()
             
             result = response.json()
-            user_info = result.get('user')
+            user_info = result
             
             if user_info:
                 self.user_info = user_info
@@ -137,17 +142,22 @@ class UserService:
             return False, "未登录"
         
         try:
-            url = f"{self.base_url}/checkin"
+            url = f"{self.base_url}/checkin/"
             headers = {
-                "Authorization": f"Bearer {self.token}"
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "app_id": APP_ID
             }
             
-            response = requests.post(url, headers=headers, timeout=5)
+            response = requests.post(url, headers=headers, json=data, timeout=5)
             response.raise_for_status()
             
             result = response.json()
-            message = result.get('message', '签到成功')
-            points = result.get('points', 0)
+            points = result.get('points_earned', 0)
+            consecutive_days = result.get('consecutive_days', 0)
+            message = f"签到成功！获得{points}积分，连续签到{consecutive_days}天"
             
             # 更新用户信息
             if self.user_info:
@@ -172,6 +182,39 @@ class UserService:
         except Exception as e:
             return False, f"签到失败：{str(e)}"
     
+    def get_checkin_stats(self):
+        """获取用户签到统计信息"""
+        if not self.token:
+            return False, "未登录"
+        
+        try:
+            url = f"{self.base_url}/checkin/me/stats"
+            params = {
+                "app_id": APP_ID
+            }
+            headers = {
+                "Authorization": f"Bearer {self.token}"
+            }
+            
+            response = requests.get(url, headers=headers, params=params, timeout=5)
+            response.raise_for_status()
+            
+            result = response.json()
+            return True, result
+        
+        except requests.exceptions.ConnectionError:
+            return False, "连接失败：无法连接到用户服务"
+        except requests.exceptions.Timeout:
+            return False, "连接超时：用户服务响应超时"
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                self.clear_token()
+                return False, "登录已过期，请重新登录"
+            else:
+                return False, f"获取签到统计失败：HTTP错误 {e.response.status_code}"
+        except Exception as e:
+            return False, f"获取签到统计失败：{str(e)}"
+    
     def is_logged_in(self):
         """检查用户是否已登录"""
         if not self.token:
@@ -181,7 +224,17 @@ class UserService:
         success, _ = self.get_user_info()
         return success
     
-    def register(self, username, password, email=None):
+    def save_login_state(self, token, user_info):
+        """保存登录状态"""
+        self.token = token
+        self.user_info = user_info
+        self._save_token(token, user_info)
+    
+    def clear_login_state(self):
+        """清除登录状态"""
+        self.clear_token()
+    
+    def register(self, username, password, email):
         """用户注册"""
         try:
             url = f"{self.base_url}/auth/register"
@@ -190,22 +243,19 @@ class UserService:
             }
             data = {
                 "username": username,
-                "password": password
+                "password": password,
+                "email": email
             }
-            
-            # 如果提供了邮箱，添加到请求数据中
-            if email:
-                data["email"] = email
             
             response = requests.post(url, headers=headers, json=data, timeout=5)
             response.raise_for_status()
             
             result = response.json()
             
-            if result.get("success", False):
+            if  "id" in result:
                 return True, "注册成功"
             else:
-                return False, result.get("message", "注册失败：未知错误")
+                return False, result.get("detail", "注册失败：未知错误")
         
         except requests.exceptions.ConnectionError:
             return False, "连接失败：无法连接到用户服务"

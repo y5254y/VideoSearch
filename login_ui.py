@@ -14,9 +14,9 @@ class Ui_LoginWindow(object):
     def setupUi(self, LoginWindow):
         if not LoginWindow.objectName():
             LoginWindow.setObjectName(u"LoginWindow")
-        LoginWindow.resize(400, 500)
-        LoginWindow.setMinimumSize(400, 400)
-        LoginWindow.setMaximumSize(400, 500)
+        LoginWindow.resize(400, 450)
+        LoginWindow.setMinimumSize(400, 350)
+        LoginWindow.setMaximumSize(400, 450)
         self.centralwidget = QWidget(LoginWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.mainLayout = QVBoxLayout(self.centralwidget)
@@ -46,8 +46,8 @@ class Ui_LoginWindow(object):
         self.username_input = QLineEdit(self.centralwidget)
         self.username_input.setObjectName(u"username_input")
         self.username_input.setPlaceholderText("请输入用户名")
-        self.username_input.setStyleSheet("padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
-        self.username_input.setMinimumHeight(30)
+        self.username_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
+        self.username_input.setMinimumHeight(25)
         
         self.mainLayout.addWidget(self.username_input)
         
@@ -60,14 +60,31 @@ class Ui_LoginWindow(object):
         
         self.mainLayout.addWidget(self.password_label)
         
+        # 创建密码输入框和显示/隐藏按钮的水平布局
+        self.password_layout = QHBoxLayout()
         self.password_input = QLineEdit(self.centralwidget)
         self.password_input.setObjectName(u"password_input")
         self.password_input.setPlaceholderText("请输入密码")
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setStyleSheet("padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
-        self.password_input.setMinimumHeight(30)
+        self.password_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-top-left-radius: 4px; border-bottom-left-radius: 4px; margin-bottom: 10px;")
+        self.password_input.setMinimumHeight(25)
         
-        self.mainLayout.addWidget(self.password_input)
+        # 密码显示/隐藏按钮
+        self.password_toggle = QPushButton(self.centralwidget)
+        self.password_toggle.setObjectName(u"password_toggle")
+        self.password_toggle.setText("👁")
+        self.password_toggle.setStyleSheet("background-color: #f5f5f5; border: 1px solid #ddd; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-bottom: 10px;")
+        self.password_toggle.setCursor(QCursor(Qt.PointingHandCursor))
+        self.password_toggle.setMinimumHeight(25)
+        self.password_toggle.setMaximumWidth(35)
+        
+        # 添加到布局
+        self.password_layout.addWidget(self.password_input)
+        self.password_layout.addWidget(self.password_toggle)
+        self.password_layout.setContentsMargins(0, 0, 0, 0)
+        self.password_layout.setSpacing(0)
+        
+        self.mainLayout.addLayout(self.password_layout)
         
         # 登录按钮
         self.login_button = QPushButton(self.centralwidget)
