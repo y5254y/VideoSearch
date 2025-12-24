@@ -101,10 +101,11 @@ class LoginWindow(QDialog, Ui_LoginWindow):
         register_window.setWindowModality(Qt.ApplicationModal)  # 设置为模态窗口
         register_window.exec()
         
-        # 如果注册成功，自动关闭登录窗口
+        # 如果注册成功，清空登录窗口的状态，但不关闭登录窗口
         if register_window.register_success:
-            self.login_success = False
-            self.close()
+            self.status_label.setText("注册成功！请使用新账号登录")
+            # 清空密码输入框，保持用户名（如果用户已经输入）
+            self.password_input.clear()
     
     def get_user_info(self):
         """获取用户信息"""

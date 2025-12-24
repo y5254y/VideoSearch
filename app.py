@@ -204,9 +204,13 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         self.user_button.setCursor(Qt.PointingHandCursor)
         
-        # 根据登录状态更新按钮文本
+        # 根据登录状态和签到状态更新按钮文本
         if self.is_logged_in and self.user_info:
             username = self.user_info.get('username', '用户')
+            # 检查是否已经签到
+            if hasattr(self, 'user_service') and self.user_service.is_logged_in():
+                if not self.user_service.is_checked_in_today():
+                    username = f"🎁 {username}"
             self.user_button.setText(username)
         
         # 连接点击事件
@@ -1189,26 +1193,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         if video_path and timestamp_ms is not None and self.player_widget:
             self.player_widget.play(video_path, timestamp_ms)
     
-    def on_check_in_clicked(self):
-        """处理签到按钮点击事件"""
-        try:
-            # 调用签到API
-            success, message = self.user_service.check_in()
-            
-            if success:
-                # 更新用户信息
-                self.user_info = self.user_service.user_info
-                # 更新用户信息标签
-                if hasattr(self, 'user_info_label'):
-                    username = self.user_info.get('username', '用户')
-                    points = self.user_info.get('points', 0)
-                    self.user_info_label.setText(f"{username} - {points} 积分")
-                QMessageBox.information(self, "签到成功", message)
-            else:
-                QMessageBox.warning(self, "签到失败", message)
-        except Exception as e:
-            QMessageBox.warning(self, "签到失败", f"签到失败：{str(e)}")
-    
     # -------------- 辅助方法 --------------
     def _t(self, key):
         """获取翻译文本"""
@@ -1228,6 +1212,20 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
                 QMessageBox.information(self, "签到成功", message)
                 # 更新用户信息
                 self.update_user_info()
+                
+                # 如果有用户信息标签，更新显示
+                if hasattr(self, 'user_info_label'):
+                    # 获取最新的详细积分信息
+                    points_success, points_info = self.user_service.get_current_points()
+                    if points_success:
+                        username = self.user_info.get('username', '用户')
+                        current_points = points_info.get('current_points', 0)
+                        self.user_info_label.setText(f"{username} - {current_points} 积分")
+                    else:
+                        # 如果获取详细积分失败，使用基本积分
+                        username = self.user_info.get('username', '用户')
+                        points = self.user_info.get('points', 0)
+                        self.user_info_label.setText(f"{username} - {points} 积分")
             else:
                 QMessageBox.warning(self, "签到失败", message)
         except Exception as e:
@@ -1237,50 +1235,47 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         if hasattr(self, 'user_button'):
             if self.is_logged_in and self.user_info:
                 username = self.user_info.get('username', '用户')
+                # 检查是否已经签到
+                if hasattr(self, 'user_service') and self.user_service.is_logged_in():
+                    if not self.user_service.is_checked_in_today():
+                        username = f"🎁 {username}"
                 self.user_button.setText(username)
             else:
                 self.user_button.setText(self._t('login'))
+    
+    def _show_user_info_dialog(self):
+        """显示用户信息对话框"""
+        # 确保获取最新的用户信息
+        self.update_user_info()
+        
+        # 创建并显示新的用户信息对话框
+        from user_info_dialog import UserInfoDialog
+        dialog = UserInfoDialog(self.user_info, self.user_service, self)
+        
+        # 连接信号
+        dialog.logout_requested.connect(self._handle_logout_request)
+        dialog.checkin_succeeded.connect(self._handle_checkin_succeeded)
+        
+        # 显示对话框
+        dialog.exec()
+        
+    def _handle_logout_request(self):
+        """处理来自用户信息对话框的登出请求"""
+        self._on_logout()
+        
+    def _handle_checkin_succeeded(self):
+        """处理来自用户信息对话框的签到成功事件"""
+        # 更新用户信息
+        self.update_user_info()
+        
+        # 更新标题栏用户按钮文本（包括礼物盒图标）
+        self.update_user_button_text()
     
     def _on_user_button_clicked(self):
         """处理用户按钮点击事件"""
         if self.is_logged_in:
             # 显示用户信息窗口
-            dialog = QDialog(self)
-            dialog.setWindowTitle("用户信息")
-            layout = QVBoxLayout()
-            
-            # 添加用户信息
-            username = self.user_info.get('username', 'N/A')
-            email = self.user_info.get('email', 'N/A')
-            points = self.user_info.get('points', 0)
-            
-            layout.addWidget(QLabel(f"用户名: {username}"))
-            layout.addWidget(QLabel(f"邮箱: {email}"))
-            layout.addWidget(QLabel(f"积分: {points}"))
-            
-            # 添加操作按钮
-            btn_layout = QHBoxLayout()
-            
-            # 签到按钮
-            btn_checkin = QPushButton("签到")
-            btn_checkin.clicked.connect(self.on_check_in_clicked)
-            btn_layout.addWidget(btn_checkin)
-            
-            # 登出按钮
-            btn_logout = QPushButton("登出")
-            btn_logout.clicked.connect(lambda: self._on_logout(dialog))
-            btn_layout.addWidget(btn_logout)
-            
-            # 关闭按钮
-            btn_close = QPushButton("关闭")
-            btn_close.clicked.connect(dialog.close)
-            btn_layout.addWidget(btn_close)
-            
-            layout.addLayout(btn_layout)
-            dialog.setLayout(layout)
-            
-            # 显示对话框
-            dialog.exec()
+            self._show_user_info_dialog()
         else:
             # 显示登录窗口
             from login_window import LoginWindow
@@ -1297,7 +1292,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
                 # 更新用户服务的状态
                 self.user_service.save_login_state(self.token, self.user_info)
     
-    def _on_logout(self, dialog):
+    def _on_logout(self, dialog=None):
         """处理登出事件"""
         # 清除登录状态
         self.is_logged_in = False
@@ -1310,8 +1305,9 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 更新用户服务的状态
         self.user_service.clear_login_state()
         
-        # 关闭用户信息对话框
-        dialog.close()
+        # 如果提供了对话框参数，则关闭对话框
+        if dialog:
+            dialog.close()
     
     def update_user_info(self):
         """更新用户信息显示"""

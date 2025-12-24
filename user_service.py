@@ -215,6 +215,24 @@ class UserService:
         except Exception as e:
             return False, f"获取签到统计失败：{str(e)}"
     
+    def is_checked_in_today(self):
+        """检查用户今天是否已经签到"""
+        import datetime
+        
+        success, stats = self.get_checkin_stats()
+        if not success:
+            return False
+        
+        last_checkin_date = stats.get('last_checkin_date')
+        if not last_checkin_date:
+            return False
+        
+        # 获取今天的日期字符串（YYYY-MM-DD格式）
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        
+        # 比较最后签到日期和今天的日期
+        return last_checkin_date == today
+    
     def is_logged_in(self):
         """检查用户是否已登录"""
         if not self.token:
@@ -272,3 +290,34 @@ class UserService:
             return False, error_message
         except Exception as e:
             return False, f"注册失败：{str(e)}"
+    
+    def get_current_points(self):
+        """获取当前用户的详细积分信息"""
+        if not self.token:
+            return False, "未登录"
+        
+        try:
+            url = f"{self.base_url}/points/me"
+            headers = {
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.get(url, headers=headers, timeout=5)
+            response.raise_for_status()
+            
+            points_info = response.json()
+            return True, points_info
+        
+        except requests.exceptions.ConnectionError:
+            return False, "连接失败：无法连接到用户服务"
+        except requests.exceptions.Timeout:
+            return False, "连接超时：用户服务响应超时"
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                self.clear_token()
+                return False, "登录已过期，请重新登录"
+            else:
+                return False, f"获取积分信息失败：HTTP错误 {e.response.status_code}"
+        except Exception as e:
+            return False, f"获取积分信息失败：{str(e)}"

@@ -40,8 +40,7 @@ class Ui_LoginWindow(object):
         self.username_label.setText("用户名")
         #self.username_label.setStyleSheet("font-size: 14px; margin-bottom: 1px;")
         self.username_label.setMinimumHeight(25)
-        
-        self.mainLayout.addWidget(self.username_label)
+        self.username_label.setMinimumWidth(80)  # 设置最小宽度，确保对齐
         
         self.username_input = QLineEdit(self.centralwidget)
         self.username_input.setObjectName(u"username_input")
@@ -49,7 +48,14 @@ class Ui_LoginWindow(object):
         self.username_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;")
         self.username_input.setMinimumHeight(25)
         
-        self.mainLayout.addWidget(self.username_input)
+        # 创建水平布局，将label和输入框水平对齐
+        self.username_layout = QHBoxLayout()
+        self.username_layout.addWidget(self.username_label)
+        self.username_layout.addWidget(self.username_input)
+        self.username_layout.setContentsMargins(0, 0, 0, 0)
+        self.username_layout.setSpacing(10)
+        
+        self.mainLayout.addLayout(self.username_layout)
         
         # 密码输入框
         self.password_label = QLabel(self.centralwidget)
@@ -57,32 +63,40 @@ class Ui_LoginWindow(object):
         self.password_label.setText("密码")
         self.password_label.setStyleSheet("font-size: 14px; margin-bottom: 1px;")
         self.password_label.setMinimumHeight(25)
+        self.password_label.setMinimumWidth(80)  # 设置最小宽度，确保对齐
         
-        self.mainLayout.addWidget(self.password_label)
+        # 创建密码输入布局容器
+        self.password_input_layout = QHBoxLayout()
+        self.password_input_layout.setContentsMargins(0, 0, 0, 0)
+        self.password_input_layout.setSpacing(0)
         
-        # 创建密码输入框和显示/隐藏按钮的水平布局
-        self.password_layout = QHBoxLayout()
+        # 密码输入框
         self.password_input = QLineEdit(self.centralwidget)
         self.password_input.setObjectName(u"password_input")
         self.password_input.setPlaceholderText("请输入密码")
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setStyleSheet("padding: 6px; border: 1px solid #ddd; border-top-left-radius: 4px; border-bottom-left-radius: 4px; margin-bottom: 10px;")
-        self.password_input.setMinimumHeight(25)
+        self.password_input.setStyleSheet("padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; background-color: white;")
+        self.password_input.setMinimumHeight(30)
         
         # 密码显示/隐藏按钮
         self.password_toggle = QPushButton(self.centralwidget)
         self.password_toggle.setObjectName(u"password_toggle")
         self.password_toggle.setText("👁")
-        self.password_toggle.setStyleSheet("background-color: #f5f5f5; border: 1px solid #ddd; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-bottom: 10px;")
+        self.password_toggle.setStyleSheet("background-color: transparent; border: none; color: #666; padding: 8px; margin: 0; border-radius: 0 4px 4px 0; position: relative; left: -1px;")
         self.password_toggle.setCursor(QCursor(Qt.PointingHandCursor))
-        self.password_toggle.setMinimumHeight(25)
-        self.password_toggle.setMaximumWidth(35)
+        self.password_toggle.setMinimumHeight(30)
+        self.password_toggle.setMaximumWidth(40)  # 增加宽度以提供更好的点击区域
         
-        # 添加到布局
-        self.password_layout.addWidget(self.password_input)
-        self.password_layout.addWidget(self.password_toggle)
+        # 添加到密码输入布局
+        self.password_input_layout.addWidget(self.password_input)
+        self.password_input_layout.addWidget(self.password_toggle)
+        
+        # 创建密码字段的水平布局（包含label和输入框）
+        self.password_layout = QHBoxLayout()
+        self.password_layout.addWidget(self.password_label)
+        self.password_layout.addLayout(self.password_input_layout)
         self.password_layout.setContentsMargins(0, 0, 0, 0)
-        self.password_layout.setSpacing(0)
+        self.password_layout.setSpacing(10)
         
         self.mainLayout.addLayout(self.password_layout)
         
