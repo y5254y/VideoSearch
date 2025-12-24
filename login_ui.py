@@ -25,14 +25,14 @@ class Ui_LoginWindow(object):
         self.mainLayout.setSpacing(20)
         
         # 标题
-        self.title_label = QLabel(self.centralwidget)
-        self.title_label.setObjectName(u"title_label")
-        self.title_label.setText("视频搜索系统")
-        self.title_label.setAlignment(Qt.AlignCenter)
-        self.title_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #2196F3;")
-        self.title_label.setMinimumHeight(50)
+        # self.title_label = QLabel(self.centralwidget)
+        # self.title_label.setObjectName(u"title_label")
+        # self.title_label.setText("视频搜索系统")
+        # self.title_label.setAlignment(Qt.AlignCenter)
+        # self.title_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #2196F3;")
+        # self.title_label.setMinimumHeight(50)
         
-        self.mainLayout.addWidget(self.title_label)
+        # self.mainLayout.addWidget(self.title_label)
         
         # 用户名输入框
         self.username_label = QLabel(self.centralwidget)

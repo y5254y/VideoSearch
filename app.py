@@ -1505,14 +1505,8 @@ def main():
     """应用入口"""
     print("启动应用程序...")
     # 启用高DPI支持（针对PySide6 6.x版本的最佳实践）
+    # 在PySide6 6.x中，高DPI缩放和高DPI像素图已经是默认启用的
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    # 在PySide6 6.x中，AA_EnableHighDpiScaling和AA_UseHighDpiPixmaps已被弃用，
-    # 因为它们的功能现在已经成为默认行为，但我们仍然保留它们以确保向后兼容性
-    try:
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-    except AttributeError:
-        pass  # 如果这些属性在未来版本中被完全移除，我们会跳过它们
     
     app = QApplication(sys.argv)
     print("创建QApplication实例成功")
