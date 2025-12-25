@@ -27,6 +27,15 @@ from translations import TRANSLATIONS
 from search_worker import SearchWorker
 from category_mappings import translate_category, get_translated_categories
 from user_service import UserService
+from config import API_BASE_URL
+from user_info_dialog import UserInfoDialog
+
+# 调试和错误处理模块
+import traceback
+
+# 视频处理和UI样式模块
+import cv2
+from qt_material import apply_stylesheet
 
 # 确保资源文件被加载
 try:
@@ -55,11 +64,12 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 初始化用户服务
         self.user_service = UserService()
         
+        
         # 用户认证状态
-        self.is_logged_in = token is not None and user_info is not None
-        self.token = token
-        self.user_info = user_info
-        from config import API_BASE_URL
+    
+        self.is_logged_in = self.user_service.is_logged_in()
+        self.token = self.user_service.token
+        self.user_info = self.user_service.user_info
         self.api_base_url = API_BASE_URL
         
         # 初始化应用状态
@@ -296,7 +306,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         def load_icon(icon_name):
             """加载单个图标，直接使用文件系统路径"""
-            import os
             base = os.path.abspath(os.path.dirname(__file__))
             icon_path = os.path.join(base, 'resources', f'{icon_name}.svg')
             
@@ -582,7 +591,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
                 card.clicked.connect(self.on_result_card_clicked)
             except Exception as e:
                 print(f"Error creating result card during sort: {e}")
-                import traceback
                 traceback.print_exc()
         
         # 更新搜索结果数量显示
@@ -1011,7 +1019,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             print(f"Worker thread started: {self.search_worker.isRunning()}")
         except Exception as e:
             print(f"Error in _start_search_worker: {e}")
-            import traceback
             traceback.print_exc()
     
     def on_stop_search(self):
@@ -1249,7 +1256,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.update_user_info()
         
         # 创建并显示新的用户信息对话框
-        from user_info_dialog import UserInfoDialog
         dialog = UserInfoDialog(self.user_info, self.user_service, self)
         
         # 连接信号
@@ -1278,7 +1284,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
             self._show_user_info_dialog()
         else:
             # 显示登录窗口
-            from login_window import LoginWindow
             login_window = LoginWindow()
             if login_window.exec():
                 # 登录成功后更新状态
@@ -1303,7 +1308,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.update_user_button_text()
         
         # 更新用户服务的状态
-        self.user_service.clear_login_state()
+        self.user_service.clear_token()
         
         # 如果提供了对话框参数，则关闭对话框
         if dialog:
@@ -1322,7 +1327,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     def _get_video_thumbnail(self, path, timestamp_ms=0):
         """获取视频缩略图"""
         try:
-            import cv2
             cap = cv2.VideoCapture(path)
             cap.set(cv2.CAP_PROP_POS_MSEC, timestamp_ms)
             ok, frame = cap.read()
@@ -1512,19 +1516,19 @@ def main():
     print("应用样式成功")
     
     # 检查是否已登录
-    user_service = UserService()
+    # user_service = UserService()
     
-    if user_service.is_logged_in():
-        # 使用已保存的令牌和用户信息
-        token = user_service.token
-        user_info = user_service.user_info
-    else:
-        # 未登录状态，使用None
-        token = None
-        user_info = None
+    # if user_service.is_logged_in():
+    #     # 使用已保存的令牌和用户信息
+    #     token = user_service.token
+    #     user_info = user_service.user_info
+    # else:
+    #     # 未登录状态，使用None
+    #     token = None
+    #     user_info = None
     
     # 创建并显示主窗口
-    window = VideoSearchApp(token=token, user_info=user_info)
+    window = VideoSearchApp()
     print("创建主窗口实例成功")
     window.show()
     print("显示主窗口成功")
@@ -1541,7 +1545,6 @@ def _apply_styles(app):
     """应用样式"""
     # 尝试应用qt-material主题
     try:
-        from qt_material import apply_stylesheet
         apply_stylesheet(app, theme='light_blue.xml', invert_secondary=True)
     except ImportError:
         pass
@@ -1558,7 +1561,6 @@ def _apply_styles(app):
                     print(f"成功加载样式表: {qss_path}")
                 except Exception as e:
                     print(f"应用样式表失败: {e}")
-                    import traceback
                     traceback.print_exc()
     except Exception as e:
         print(f"读取样式表文件失败: {e}")
