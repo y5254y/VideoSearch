@@ -26,6 +26,7 @@ from search import AISearchEngine, format_ms
 from translations import TRANSLATIONS
 from search_worker import SearchWorker
 from category_mappings import translate_category, get_translated_categories
+from user_service import UserService
 
 # 确保资源文件被加载
 try:
@@ -52,7 +53,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.setAttribute(Qt.WA_TranslucentBackground)
         
         # 初始化用户服务
-        from user_service import UserService
         self.user_service = UserService()
         
         # 用户认证状态
@@ -1512,7 +1512,6 @@ def main():
     print("应用样式成功")
     
     # 检查是否已登录
-    from user_service import UserService
     user_service = UserService()
     
     if user_service.is_logged_in():
