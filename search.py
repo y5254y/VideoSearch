@@ -2,10 +2,15 @@
 """
 Search utilities for VideoSearch application.
 Provides AISearchEngine class for AI-powered video search using CLIP and YOLO.
-This module intentionally keeps imports local to functions so
-the application can still start without dependencies for other features.
 """
 
+import os
+import cv2
+import torch
+import numpy as np
+from PIL import Image
+from ultralytics import YOLO
+from transformers import CLIPModel, CLIPProcessor
 from typing import List, Tuple, Generator, Optional, Callable
 
 
@@ -48,8 +53,6 @@ class AISearchEngine:
     def _ensure_clip_loaded(self):
         """Lazy load CLIP model and processor."""
         if self._clip_model is None:
-            import torch
-            from transformers import CLIPModel, CLIPProcessor
 
             # Send model download message
             self._send_message('downloading_model')
@@ -63,7 +66,6 @@ class AISearchEngine:
     def _ensure_yolo_loaded(self):
         """Lazy load YOLO model."""
         if self._yolo_model is None:
-            from ultralytics import YOLO
             
             # Send model download message
             self._send_message('downloading_model')
@@ -90,10 +92,6 @@ class AISearchEngine:
 
     def _get_clip_image_embedding(self, image):
         """Get CLIP embedding for an image (PIL Image or numpy array)."""
-        import torch
-        from PIL import Image
-        import numpy as np
-
         self._ensure_clip_loaded()
 
         if isinstance(image, np.ndarray):
@@ -111,8 +109,6 @@ class AISearchEngine:
 
     def _get_clip_text_embedding(self, text: str):
         """Get CLIP embedding for text."""
-        import torch
-
         self._ensure_clip_loaded()
 
         inputs = self._clip_processor(text=[text], return_tensors="pt", padding=True)
@@ -156,8 +152,6 @@ class AISearchEngine:
         Yields:
             Tuples of (video_path, timestamp_ms, score) for each match found.
         """
-        import cv2
-        import os
         
         # Set the message callback for this search operation
         old_callback = self._message_callback
@@ -191,9 +185,6 @@ class AISearchEngine:
         stop_check: Optional[Callable[[], bool]] = None,
     ) -> Generator[Tuple[str, int, float], None, None]:
         """Search videos using query images with CLIP similarity."""
-        import cv2
-        import torch
-        from PIL import Image
 
         self._ensure_clip_loaded()
 
@@ -219,7 +210,6 @@ class AISearchEngine:
                 return
                 
             # Send frame extraction message
-            import os
             self._send_message('extracting_frames', {'name': os.path.basename(video_path)})
 
             cap = cv2.VideoCapture(video_path)
@@ -295,8 +285,6 @@ class AISearchEngine:
         stop_check: Optional[Callable[[], bool]] = None,
     ) -> Generator[Tuple[str, int, float], None, None]:
         """Search videos using text query with CLIP."""
-        import cv2
-        import torch
 
         self._ensure_clip_loaded()
 
@@ -308,7 +296,6 @@ class AISearchEngine:
                 return
                 
             # Send frame extraction message
-            import os
             self._send_message('extracting_frames', {'name': os.path.basename(video_path)})
 
             cap = cv2.VideoCapture(video_path)
@@ -380,7 +367,6 @@ class AISearchEngine:
         stop_check: Optional[Callable[[], bool]] = None,
     ) -> Generator[Tuple[str, int, float], None, None]:
         """Search videos for objects matching the category using YOLO."""
-        import cv2
 
         self._ensure_yolo_loaded()
 
@@ -392,7 +378,6 @@ class AISearchEngine:
                 return
                 
             # Send frame extraction message
-            import os
             self._send_message('extracting_frames', {'name': os.path.basename(video_path)})
 
             cap = cv2.VideoCapture(video_path)

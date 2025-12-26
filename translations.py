@@ -49,7 +49,10 @@ TRANSLATIONS = {
         'sort_by': '排序方式',
         'sort_by_score': '按评分排序',
         'sort_by_time': '按时间排序',
-        'score_below_threshold': '得分较低'    },
+        'score_below_threshold': '得分较低',
+        'login': '登录',
+        'user': '用户'
+    },
     'en': {
         'title': 'LocalVideoSearch',
         'select_videos': 'Select Videos',
@@ -93,6 +96,8 @@ TRANSLATIONS = {
         'sort_by': 'Sort by',
         'sort_by_score': 'Sort by score',
         'sort_by_time': 'Sort by time',
-        'score_below_threshold': 'Low score'
+        'score_below_threshold': 'Low score',
+        'login': 'Login',
+        'user': 'User'
     }
 }

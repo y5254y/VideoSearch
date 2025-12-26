@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, Signal
 from widgets.fluent_card import Card
 from widgets.fluent_badge import Badge
 import os
+import shutil
 
 class ResultCard(Card):
     clicked = Signal(str, int)  # video_path, timestamp_ms
@@ -115,7 +116,6 @@ class ResultCard(Card):
         if os.path.exists(self.video_path):
             try:
                 # simply copy to desktop as demo
-                import shutil
                 dst = os.path.join(os.path.expanduser('~'), 'Desktop', os.path.basename(self.video_path))
                 shutil.copy(self.video_path, dst)
             except Exception:

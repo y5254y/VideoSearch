@@ -30,18 +30,17 @@ class Ui_MainWindow(object):
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
         # 设置splitter的拉伸因子，让中间面板能够自适应伸缩
         self.splitter.setStretchFactor(0, 1)  # 左侧面板
-        self.splitter.setStretchFactor(1, 2)  # 中间面板
+        self.splitter.setStretchFactor(1, 3)  # 中间面板
         self.splitter.setStretchFactor(2, 2)  # 右侧面板
         # 设置左侧面板的最小宽度，确保能够完整显示单选按钮文本
-        self.splitter.setSizes([280, 400, 400])
+        self.splitter.setSizes([220, 500, 400])
         self.leftPanel = QWidget(self.splitter)
         self.leftPanel.setObjectName(u"leftPanel")
         self.leftLayout = QVBoxLayout(self.leftPanel)
         self.leftLayout.setObjectName(u"leftLayout")
-        self.leftLayout.setContentsMargins(0, 0, 0, 0)
-        self.selectionLayout = QVBoxLayout()
-        self.selectionLayout.setObjectName(u"selectionLayout")
-        # 保持控件在顶部，不添加顶部拉伸
+        self.leftLayout.setContentsMargins(8, 8, 8, 8)
+
+        # 1. 创建搜索模式布局（顶部）
         self.modeLayout = QVBoxLayout()
         self.modeLayout.setObjectName(u"modeLayout")
         self.radioButtonsLayout = QVBoxLayout()
@@ -65,7 +64,6 @@ class Ui_MainWindow(object):
 
         self.radioButtonsLayout.addWidget(self.rb_text)
 
-
         self.modeLayout.addLayout(self.radioButtonsLayout)
 
         self.lbl_mode_hint = QLabel(self.leftPanel)
@@ -75,90 +73,79 @@ class Ui_MainWindow(object):
 
         self.modeLayout.addWidget(self.lbl_mode_hint)
 
+        # 将搜索模式布局添加到左侧面板
+        self.leftLayout.addLayout(self.modeLayout)
 
-        self.selectionLayout.addLayout(self.modeLayout)
-
+        # 2. 创建主要内容布局（中间）
+        # 视频选择部分
         self.btn_select_videos = QPushButton(self.leftPanel)
         self.btn_select_videos.setObjectName(u"btn_select_videos")
-
-        self.selectionLayout.addWidget(self.btn_select_videos)
+        self.leftLayout.addWidget(self.btn_select_videos)
 
         self.lbl_selected_videos = QLabel(self.leftPanel)
         self.lbl_selected_videos.setObjectName(u"lbl_selected_videos")
-
-        self.selectionLayout.addWidget(self.lbl_selected_videos)
+        self.leftLayout.addWidget(self.lbl_selected_videos)
 
         self.list_videos = QListWidget(self.leftPanel)
         self.list_videos.setObjectName(u"list_videos")
+        # 设置视频列表的最小高度和大小策略，使其占用更多空间
+        self.list_videos.setMinimumHeight(300)
+        self.list_videos.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.leftLayout.addWidget(self.list_videos)
 
-        self.selectionLayout.addWidget(self.list_videos)
-
+        # 图片选择部分
         self.btn_select_images = QPushButton(self.leftPanel)
         self.btn_select_images.setObjectName(u"btn_select_images")
-
-        self.selectionLayout.addWidget(self.btn_select_images)
+        self.leftLayout.addWidget(self.btn_select_images)
 
         self.lbl_query_images = QLabel(self.leftPanel)
         self.lbl_query_images.setObjectName(u"lbl_query_images")
-
-        self.selectionLayout.addWidget(self.lbl_query_images)
+        self.leftLayout.addWidget(self.lbl_query_images)
 
         self.list_images = QListWidget(self.leftPanel)
         self.list_images.setObjectName(u"list_images")
+        self.leftLayout.addWidget(self.list_images)
 
-        self.selectionLayout.addWidget(self.list_images)
-
+        # 分类选择部分
         self.lbl_select_category = QLabel(self.leftPanel)
         self.lbl_select_category.setObjectName(u"lbl_select_category")
-
-        self.selectionLayout.addWidget(self.lbl_select_category)
+        self.leftLayout.addWidget(self.lbl_select_category)
 
         self.combo_category = QComboBox(self.leftPanel)
         self.combo_category.setObjectName(u"combo_category")
+        self.leftLayout.addWidget(self.combo_category)
 
-        self.selectionLayout.addWidget(self.combo_category)
-
+        # 文本查询部分
         self.lbl_text_query = QLabel(self.leftPanel)
         self.lbl_text_query.setObjectName(u"lbl_text_query")
-
-        self.selectionLayout.addWidget(self.lbl_text_query)
+        self.leftLayout.addWidget(self.lbl_text_query)
 
         self.input_text = QLineEdit(self.leftPanel)
         self.input_text.setObjectName(u"input_text")
+        self.leftLayout.addWidget(self.input_text)
 
-        self.selectionLayout.addWidget(self.input_text)
+        # 添加拉伸因子，确保底部控件固定在下方
+        self.leftLayout.addStretch(1)
 
+        # 3. 创建底部布局（固定的匹配精度滑块和搜索按钮）
         self.sliderLayout = QHBoxLayout()
         self.sliderLayout.setObjectName(u"sliderLayout")
         self.lbl_score = QLabel(self.leftPanel)
         self.lbl_score.setObjectName(u"lbl_score")
-
         self.sliderLayout.addWidget(self.lbl_score)
 
         self.slider = QSlider(self.leftPanel)
         self.slider.setObjectName(u"slider")
         self.slider.setOrientation(Qt.Orientation.Horizontal)
-
         self.sliderLayout.addWidget(self.slider)
-
-
-        self.selectionLayout.addLayout(self.sliderLayout)
+        self.leftLayout.addLayout(self.sliderLayout)
 
         self.btnsLayout = QHBoxLayout()
         self.btnsLayout.setObjectName(u"btnsLayout")
         self.btn_search = QPushButton(self.leftPanel)
         self.btn_search.setObjectName(u"btn_search")
-
         self.btnsLayout.addWidget(self.btn_search)
-
-
-
-        self.selectionLayout.addLayout(self.btnsLayout)
-        # 在底部添加拉伸因子，将所有控件固定在顶部
-        self.selectionLayout.addStretch(1)
-
-
-        self.leftLayout.addLayout(self.selectionLayout)
+        self.leftLayout.addLayout(self.btnsLayout)
 
         self.splitter.addWidget(self.leftPanel)
         self.centerPanel = QWidget(self.splitter)

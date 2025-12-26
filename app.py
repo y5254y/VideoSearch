@@ -3,12 +3,13 @@ import sys
 import os
 import json
 import requests
+import webbrowser
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QPushButton, QLabel,
     QListWidget, QListWidgetItem, QFileDialog, QHBoxLayout, QVBoxLayout,
     QLineEdit, QComboBox, QMessageBox, QSizePolicy, QSplitter,
     QRadioButton, QButtonGroup, QSlider, QProgressBar, QTextBrowser, QListView,
-    QDialog
+    QDialog, QStyle
 )
 from PySide6.QtGui import QPixmap, QImage, QIcon, QAction, QPainter, QPolygon, QColor
 from PySide6.QtCore import QPoint, Qt, QUrl, QSize, QTimer, QEvent
@@ -48,18 +49,18 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
         
-        # 设置窗口初始大小为屏幕的3/4
-        screen_geometry = QApplication.primaryScreen().geometry()
-        width = int(screen_geometry.width() * 3 / 4)
-        height = int(screen_geometry.height() * 3 / 4)
-        self.resize(width, height)
-        
-        # 允许窗口大小调整
-        self.setMinimumSize(800, 600)
+        # 设置窗口图标
+        #self.setWindowIcon(QIcon(":/icons/resources/icon.png"))
         
         # 使用自定义标题栏，去掉默认标题栏
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        # 允许窗口大小调整
+        self.setMinimumSize(800, 600)
+        
+        # 设置窗口启动时最大化显示（延迟执行，确保窗口标志已正确应用）
+        QTimer.singleShot(100, self.showMaximized)
         
         # 初始化用户服务
         self.user_service = UserService()
@@ -108,7 +109,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.lang_combo.setToolTip(self._t('language'))
         
         # 将语言选择组合框添加到自定义标题栏
-        self.title_bar.layout().insertWidget(2, self.lang_combo)
+        self.title_bar.layout().insertWidget(3, self.lang_combo)
         
         # 样式已移至QSS文件中
         
@@ -169,28 +170,41 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
+        # 创建logo标签
+        self.logo_label = QLabel()
+        self.logo_label.setPixmap(QPixmap(":/icons/resources/icon.png"))#.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.logo_label.setFixedSize(32, 32)
+        #self.logo_label.setContentsMargins(10, 10, 10, 10)
+        
         # 创建标题标签
         self.title_label = QLabel(self._t('title'))
         self.title_label.setObjectName("title_label")
         
         # 创建最小化按钮
-        self.btn_minimize = QPushButton("-")
+        self.btn_minimize = QPushButton()
         self.btn_minimize.setObjectName("title_btn")
+        self.btn_minimize.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarMinButton', QStyle.SP_TitleBarMinButton)))
+        self.btn_minimize.setIconSize(QSize(16, 16))
         
         # 创建最大化按钮
-        self.btn_maximize = QPushButton("□")
+        self.btn_maximize = QPushButton()
         self.btn_maximize.setObjectName("title_btn")
+        self.btn_maximize.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarMaxButton', QStyle.SP_TitleBarMaxButton)))
+        self.btn_maximize.setIconSize(QSize(16, 16))
         
         # 创建关闭按钮
-        self.btn_close = QPushButton("×")
+        self.btn_close = QPushButton()
         self.btn_close.setObjectName("title_btn_close")
+        self.btn_close.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarCloseButton', QStyle.SP_TitleBarCloseButton)))
+        self.btn_close.setIconSize(QSize(16, 16))
         
         # 添加控件到布局
+        layout.addWidget(self.logo_label)
         layout.addWidget(self.title_label)
         layout.addStretch(1)
         
         # 创建用户按钮，放在窗口控制按钮之前
-        self.user_button = QPushButton('登录')  # 直接在创建时设置文本
+        self.user_button = QPushButton(self._t('login'))  # 使用翻译文本
         self.user_button.setObjectName("userButton")
         
         # 设置简单明确的样式
@@ -216,7 +230,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 根据登录状态和签到状态更新按钮文本
         if self.is_logged_in and self.user_info:
-            username = self.user_info.get('username', '用户')
+            username = self.user_info.get('username', self._t('user'))
             # 检查是否已经签到
             if hasattr(self, 'user_service') and self.user_service.is_logged_in():
                 if not self.user_service.is_checked_in_today():
@@ -229,7 +243,15 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 将用户按钮添加到标题栏
         layout.addWidget(self.user_button)
         
-        # 添加窗口控制按钮
+        # 创建帮助按钮
+        self.btn_help = QPushButton()
+        self.btn_help.setObjectName("title_btn")
+        self.btn_help.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_MessageBoxQuestion', QStyle.SP_MessageBoxQuestion)))
+        self.btn_help.setIconSize(QSize(16, 16))
+        self.btn_help.setToolTip("帮助")
+        
+        # 添加帮助按钮和窗口控制按钮
+        layout.addWidget(self.btn_help)
         layout.addWidget(self.btn_minimize)
         layout.addWidget(self.btn_maximize)
         layout.addWidget(self.btn_close)
@@ -245,6 +267,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.btn_minimize.clicked.connect(self.showMinimized)
         self.btn_maximize.clicked.connect(self._toggle_maximize)
         self.btn_close.clicked.connect(self.close)
+        self.btn_help.clicked.connect(self._on_help_button_clicked)
         
         # 添加窗口拖动功能
         self.title_bar.mousePressEvent = self._title_bar_mouse_press_event
@@ -257,11 +280,40 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     def _toggle_maximize(self):
         """切换窗口最大化/还原状态"""
         if self.isMaximized():
+            # 还原时设置为屏幕的3/4大小
+            screen_geometry = QApplication.primaryScreen().geometry()
+            
+            # 计算目标尺寸（3/4屏幕大小）
+            target_width = int(screen_geometry.width() * 3 / 4)
+            target_height = int(screen_geometry.height() * 3 / 4)
+            
+            # 确保目标尺寸不小于窗口最小尺寸
+            target_width = max(target_width, 800)
+            target_height = max(target_height, 600)
+            
+            # 计算居中位置
+            x = (screen_geometry.width() - target_width) // 2
+            y = (screen_geometry.height() - target_height) // 2
+            
+            # 先恢复正常状态
             self.showNormal()
-            self.btn_maximize.setText("□")
+            
+            # 使用resize而不是setGeometry，让Qt自己处理位置
+            self.resize(target_width, target_height)
+            
+            # 移动到屏幕中央
+            self.move(x, y)
+            
+            self.btn_maximize.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarMaxButton', QStyle.SP_TitleBarMaxButton)))
         else:
             self.showMaximized()
-            self.btn_maximize.setText("◱")
+            self.btn_maximize.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarNormalButton', QStyle.SP_TitleBarNormalButton)))
+            
+    def _on_help_button_clicked(self):
+        """帮助按钮点击事件处理"""
+        # 打开帮助页面（暂时跳转到百度，后面可以修改为使用说明页面）
+        help_url = "https://www.baidu.com"
+        webbrowser.open(help_url)
     
     def _title_bar_mouse_press_event(self, event):
         """标题栏鼠标按下事件"""
@@ -346,11 +398,11 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         """优化左侧面板的布局和控件样式"""
         
         # 为各个控件组添加更好的间距
-        for layout in [self.modeLayout, self.selectionLayout]:
-            if hasattr(layout, 'setSpacing'):
-                layout.setSpacing(8)
-            if hasattr(layout, 'setContentsMargins'):
-                layout.setContentsMargins(8, 8, 8, 8)
+        if hasattr(self, 'modeLayout'):
+            if hasattr(self.modeLayout, 'setSpacing'):
+                self.modeLayout.setSpacing(8)
+            if hasattr(self.modeLayout, 'setContentsMargins'):
+                self.modeLayout.setContentsMargins(8, 8, 8, 8)
         
         # 优化单选按钮组的布局，改为紧凑的水平布局
         self.modeLayout.setContentsMargins(12, 8, 12, 8)
@@ -431,8 +483,8 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.splitter.setStretchFactor(2, 2)   # rightPanel - 中等拉伸
         
         # 设置最小尺寸约束
-        self.leftPanel.setMinimumWidth(250)
-        self.leftPanel.setMaximumWidth(450)
+        self.leftPanel.setMinimumWidth(200)
+        self.leftPanel.setMaximumWidth(400)
         self.centerPanel.setMinimumWidth(500)
         self.rightPanel.setMinimumWidth(350)
         self.rightPanel.setMaximumWidth(700)
@@ -1225,7 +1277,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
                     # 获取最新的详细积分信息
                     points_success, points_info = self.user_service.get_current_points()
                     if points_success:
-                        username = self.user_info.get('username', '用户')
+                        username = self.user_info.get('username', self._t('user'))
                         current_points = points_info.get('current_points', 0)
                         self.user_info_label.setText(f"{username} - {current_points} 积分")
                     else:
