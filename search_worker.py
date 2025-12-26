@@ -45,6 +45,12 @@ class SearchWorker(QThread):
     def stop(self):
         """Request the search to stop."""
         self._stopped = True
+        self.quit()
+        
+    def quit(self):
+        """Override quit to ensure proper termination."""
+        self.stop()
+        super().quit()
 
     def run(self):
         """Execute the search in a background thread."""

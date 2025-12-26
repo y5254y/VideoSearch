@@ -21,6 +21,7 @@ from player_widget import PlayerWidget
 from main_ui import Ui_MainWindow
 from widgets.result_card import ResultCard
 from login_window import LoginWindow
+from settings_window import SettingsWindow
 
 # 导入搜索和工具模块
 from search import AISearchEngine, format_ms
@@ -243,14 +244,22 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 将用户按钮添加到标题栏
         layout.addWidget(self.user_button)
         
+        # 创建设置按钮
+        self.btn_settings = QPushButton()
+        self.btn_settings.setObjectName("title_btn")
+        self.btn_settings.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_FileDialogDetailedView', QStyle.SP_FileDialogDetailedView)))
+        self.btn_settings.setIconSize(QSize(16, 16))
+        self.btn_settings.setToolTip("设置")
+
         # 创建帮助按钮
         self.btn_help = QPushButton()
         self.btn_help.setObjectName("title_btn")
         self.btn_help.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_MessageBoxQuestion', QStyle.SP_MessageBoxQuestion)))
         self.btn_help.setIconSize(QSize(16, 16))
         self.btn_help.setToolTip("帮助")
-        
-        # 添加帮助按钮和窗口控制按钮
+
+        # 添加设置按钮、帮助按钮和窗口控制按钮
+        layout.addWidget(self.btn_settings)
         layout.addWidget(self.btn_help)
         layout.addWidget(self.btn_minimize)
         layout.addWidget(self.btn_maximize)
@@ -268,6 +277,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         self.btn_maximize.clicked.connect(self._toggle_maximize)
         self.btn_close.clicked.connect(self.close)
         self.btn_help.clicked.connect(self._on_help_button_clicked)
+        self.btn_settings.clicked.connect(self._on_settings_button_clicked)
         
         # 添加窗口拖动功能
         self.title_bar.mousePressEvent = self._title_bar_mouse_press_event
@@ -314,6 +324,15 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 打开帮助页面（暂时跳转到百度，后面可以修改为使用说明页面）
         help_url = "https://www.baidu.com"
         webbrowser.open(help_url)
+    
+    def _on_settings_button_clicked(self):
+        """设置按钮点击事件处理"""
+        try:
+            # 创建并显示设置窗口
+            settings_window = SettingsWindow()
+            settings_window.exec()
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"打开设置窗口失败: {str(e)}")
     
     def _title_bar_mouse_press_event(self, event):
         """标题栏鼠标按下事件"""
@@ -1526,38 +1545,50 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     
     # -------------- 窗口事件处理 --------------
     def closeEvent(self, event):
-        """窗口关闭事件处理"""
+        """窗口关闭事件处理，确保所有线程和资源被正确清理"""
+        print("开始关闭窗口...")
+        
         # 保存配置
         try:
             self.config['score'] = int(self.slider.value())
             self._save_config()
-        except Exception:
-            pass
+            print("配置保存成功")
+        except Exception as e:
+            print(f"保存配置失败: {e}")
         
         # 停止搜索工作线程
         try:
             if self.search_worker:
+                print("停止搜索工作线程...")
                 self.search_worker.stop()
                 if self.search_worker.isRunning():
-                    self.search_worker.wait(3000)
-        except Exception:
-            pass
+                    print("等待搜索工作线程退出...")
+                    if not self.search_worker.wait(3000):  # 等待最多3秒
+                        print("搜索工作线程超时，强制终止")
+                        # 在PySide6中，不建议直接终止线程，但可以设置标志并尝试再次等待
+                        self.search_worker.quit()
+                        self.search_worker.wait(1000)
+        except Exception as e:
+            print(f"停止搜索工作线程失败: {e}")
         
         # 停止播放器
         try:
             if self.player_widget:
+                print("停止播放器...")
                 self.player_widget.player.stop()
                 self.player_widget.player.setSource(QUrl())
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"停止播放器失败: {e}")
         
+        print("窗口关闭事件处理完成")
         super().closeEvent(event)
 
 def main():
     """应用入口"""
+    import sys  # 确保sys模块在函数作用域内可用
+    
     print("启动应用程序...")
     # 启用高DPI支持（针对PySide6 6.x版本的最佳实践）
-    # 在PySide6 6.x中，高DPI缩放和高DPI像素图已经是默认启用的
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     
     app = QApplication(sys.argv)
@@ -1566,18 +1597,6 @@ def main():
     # 应用样式
     _apply_styles(app)
     print("应用样式成功")
-    
-    # 检查是否已登录
-    # user_service = UserService()
-    
-    # if user_service.is_logged_in():
-    #     # 使用已保存的令牌和用户信息
-    #     token = user_service.token
-    #     user_info = user_service.user_info
-    # else:
-    #     # 未登录状态，使用None
-    #     token = None
-    #     user_info = None
     
     # 创建并显示主窗口
     window = VideoSearchApp()
@@ -1591,7 +1610,50 @@ def main():
     
     # 运行应用
     print("开始运行应用程序事件循环...")
-    sys.exit(app.exec())
+    try:
+        sys.exit(app.exec())
+    finally:
+        print("开始清理应用资源...")
+        
+        # 显式清理requests库的所有连接和线程池
+        try:
+            import requests
+            # 关闭默认会话
+            if hasattr(requests, '_default_session') and requests._default_session:
+                requests._default_session.close()
+                requests._default_session = None
+            
+            # 关闭所有连接适配器
+            if hasattr(requests, 'adapters'):
+                # 重置连接池大小
+                requests.adapters.DEFAULT_POOLSIZE = 0
+                requests.adapters.DEFAULT_RETRIES = 0
+                # 清理所有活动连接
+                if hasattr(requests.adapters, 'HTTPAdapter'):
+                    adapter = requests.adapters.HTTPAdapter()
+                    adapter.close()
+            
+            # 显式删除requests模块引用
+            import sys
+            if 'requests' in sys.modules:
+                del sys.modules['requests']
+            
+            print("Requests库资源清理完成")
+        except Exception as e:
+            print(f"清理Requests库资源失败: {e}")
+        
+        # 强制垃圾回收
+        try:
+            import gc
+            # 多次垃圾回收确保所有对象被清理
+            gc.collect()
+            gc.collect()
+            gc.collect()
+            print("垃圾回收完成")
+        except Exception as e:
+            print(f"垃圾回收失败: {e}")
+        
+        print("应用程序已退出，所有资源已清理")
 
 def _apply_styles(app):
     """应用样式"""
