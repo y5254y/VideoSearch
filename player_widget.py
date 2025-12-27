@@ -29,6 +29,8 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         self._pending_position_ms: Optional[int] = None
         self._slider_is_dragging = False
         self._is_fullscreen = False
+        self._should_pause_after_seek = False  # 标记是否需要在定位后暂停
+        self._target_position_ms = None  # 保存目标位置，用于精确暂停
         
         # 控制条自动隐藏相关
         self._controls_hidden = False
@@ -106,6 +108,18 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self.player.bufferStatusChanged.connect(self._on_buffer_status_changed)
             except Exception:
                 pass
+            # 连接播放状态变化信号
+            try:
+                self.player.playbackStateChanged.connect(self._on_playback_state_changed)
+            except Exception:
+                # some versions may use different signal name
+                try:
+                    self.player.stateChanged.connect(self._on_playback_state_changed)
+                except Exception:
+                    pass
+            
+            # 为滑块添加事件过滤器来处理点击事件
+            self.playbackSlider.installEventFilter(self)
         except Exception as e:
             print(f"Error connecting player signals: {e}")
     
@@ -163,12 +177,29 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
     def play_at(self, path: str, position_ms: int):
         try:
-            self._pending_position_ms = int(position_ms)
+            # 从搜索结果的前1秒开始播放
+            adjusted_position = max(0, int(position_ms) - 1000)  # 减去1秒（1000毫秒）
+            self._pending_position_ms = adjusted_position
+            self._should_pause_after_seek = True  # 设置标记，定位后需要暂停
+            self._target_position_ms = int(position_ms)  # 保存目标位置
         except Exception:
             self._pending_position_ms = None
+            self._should_pause_after_seek = False
+            self._target_position_ms = None
+        
+        # 清理可能存在的旧定时器，避免冲突
+        if hasattr(self, '_final_pause_timer'):
+            if self._final_pause_timer.isActive():
+                self._final_pause_timer.stop()
+            delattr(self, '_final_pause_timer')
+        
         url = QUrl.fromLocalFile(path)
         self.player.setSource(url)
         self.player.play()
+        
+        # 增加一个计数器来确保视频至少播放几帧后再暂停
+        self._frame_counter = 0
+        self._max_frames = 3  # 确保至少播放3帧
     
     def play(self, path: str, position_ms: int):
         """兼容方法，用于处理来自搜索结果卡片的点击事件"""
@@ -231,6 +262,11 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 except Exception:
                     pass
                 self._pending_position_ms = None
+                
+            # 在视频开始缓冲或播放时检查是否需要暂停
+            if status in (QMediaPlayer.MediaStatus.BufferedMedia, QMediaPlayer.MediaStatus.Buffered) and self._should_pause_after_seek:
+                self.player.pause()
+                self._should_pause_after_seek = False
 
             try:
                 if status in (QMediaPlayer.MediaStatus.LoadedMedia, QMediaPlayer.MediaStatus.BufferedMedia, QMediaPlayer.MediaStatus.Buffered):
@@ -250,6 +286,15 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             if dur > 0 and not self._slider_is_dragging:
                 val = int((pos_ms / dur) * 1000)
                 self.playbackSlider.setValue(max(0, min(val, 1000)))
+            
+            # 增加帧计数器，确保视频至少播放几帧
+            if hasattr(self, '_frame_counter') and self._should_pause_after_seek:
+                self._frame_counter += 1
+                
+                # 如果计数器达到最大值或位置接近目标位置，开始准备暂停
+                if self._frame_counter >= self._max_frames or (self._target_position_ms is not None and abs(pos_ms - self._target_position_ms) <= 150):
+                    # 直接暂停，不再使用定时器，避免不必要的延迟和跳帧
+                    self._safe_pause()
         except Exception:
             pass
 
@@ -295,7 +340,9 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         except Exception:
             pass
 
+
     def _on_slider_moved(self, value: int):
+        """处理滑块拖动过程中的值变化，更新时间显示"""
         try:
             dur = self.player.duration() or 0
             if dur > 0:
@@ -316,6 +363,8 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 except Exception:
                     playing = False
 
+            # 移除了位置检查定时器逻辑，改为在_position_changed中通过帧计数和位置检查来控制暂停
+
             if playing:
                 try:
                     #self.playButton.setText(self._icon_pause.)
@@ -328,6 +377,32 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                     # self.playButton.setText('▶')
                 except Exception:
                     pass
+        except Exception:
+            pass
+
+    def _safe_pause(self):
+        """安全暂停视频，确保帧已渲染"""
+        try:
+            # 先检查视频是否正在播放
+            if hasattr(self.player, 'playbackState'):
+                is_playing = (self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState)
+            else:
+                is_playing = (self.player.state() == QMediaPlayer.PlayingState)
+            
+            if is_playing:
+                # 直接暂停，不再重新定位，避免跳帧
+                self.player.pause()
+                self._should_pause_after_seek = False
+                self._target_position_ms = None
+                
+                # 清理定时器
+                if hasattr(self, '_position_check_timer') and self._position_check_timer.isActive():
+                    self._position_check_timer.stop()
+                    delattr(self, '_position_check_timer')
+                if hasattr(self, '_frame_counter'):
+                    delattr(self, '_frame_counter')
+                if hasattr(self, '_max_frames'):
+                    delattr(self, '_max_frames')
         except Exception:
             pass
 
@@ -421,6 +496,30 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
             print('Fullscreen error:', e)
             pass
 
+    def _check_position_and_pause(self):
+        """定期检查视频位置和播放状态"""
+        try:
+            if not self._should_pause_after_seek:
+                # 如果不再需要暂停，停止定时器
+                if hasattr(self, '_position_check_timer') and self._position_check_timer.isActive():
+                    self._position_check_timer.stop()
+                    delattr(self, '_position_check_timer')
+                return
+            
+            # 检查是否已经播放了足够的帧
+            if hasattr(self, '_frame_counter') and self._frame_counter >= self._max_frames:
+                # 如果已经播放了足够的帧，准备暂停
+                if not hasattr(self, '_final_pause_timer') or not self._final_pause_timer.isActive():
+                    self._final_pause_timer = QTimer(self)
+                    self._final_pause_timer.setSingleShot(True)
+                    self._final_pause_timer.timeout.connect(self._safe_pause)
+                    self._final_pause_timer.start(300)
+                    # 停止位置检查定时器
+                    if self._position_check_timer.isActive():
+                        self._position_check_timer.stop()
+        except Exception:
+            pass
+
     def set_icons(self, play_icon: QIcon = None, pause_icon: QIcon = None, stop_icon: QIcon = None):
         """Allow host application to provide QIcons (from QRC or filesystem).
         This avoids calling QIcon(':/...') inside the widget and keeps resource loading centralized.
@@ -508,10 +607,35 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 self._start_hide_timer()
                 return True
             # 鼠标点击控制区域时仅显示控制条
-            elif obj == self.controlsContainer or obj == self.playbackSlider:
+            elif obj == self.controlsContainer:
                 self._show_controls()
                 self._start_hide_timer()
                 return True
+            elif obj == self.playbackSlider:
+                # 点击进度条时只显示控制条，不消费事件（让release事件能正常触发）
+                self._show_controls()
+                self._start_hide_timer()
+        elif event.type() == QtCore.QEvent.MouseButtonRelease:
+            # 处理进度条点击事件
+            if obj == self.playbackSlider:
+                # 如果不是拖动，说明是直接点击
+                if not self._slider_is_dragging:
+                    # 获取点击位置的相对值
+                    rect = self.playbackSlider.rect()
+                    x = event.pos().x()
+                    # 计算点击位置对应的滑块值
+                    value = int((x / rect.width()) * 1000)
+                    value = max(0, min(value, 1000))  # 确保在范围内
+
+                    # 跳转到对应位置
+                    dur = self.player.duration() or 0
+                    if dur > 0:
+                        pos = int((value / 1000.0) * dur)
+                        self.player.setPosition(pos)
+                        self.playbackTimeLabel.setText(f"{format_ms(pos)} / {format_ms(int(dur))}")
+
+                    # 更新滑块位置
+                    self.playbackSlider.setValue(value)
         elif event.type() == QtCore.QEvent.KeyPress:
             # ESC键退出全屏模式
             if obj == self.videoWidget and self._is_fullscreen and event.key() == QtCore.Qt.Key_Escape:

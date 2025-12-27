@@ -89,7 +89,7 @@ class Ui_MainWindow(object):
         self.list_videos = QListWidget(self.leftPanel)
         self.list_videos.setObjectName(u"list_videos")
         # 设置视频列表的最小高度和大小策略，使其占用更多空间
-        self.list_videos.setMinimumHeight(300)
+        self.list_videos.setMinimumHeight(200)
         self.list_videos.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.leftLayout.addWidget(self.list_videos)
 

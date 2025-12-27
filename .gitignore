@@ -265,3 +265,5 @@ paket-files/
 *.zip
 *.yaml
 *.swp
+build/
+dist/

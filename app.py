@@ -69,7 +69,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 用户认证状态
     
-        self.is_logged_in = self.user_service.is_logged_in()
+        self.is_logged_in = False  # 初始化为False，稍后在后台检查
         self.token = self.user_service.token
         self.user_info = self.user_service.user_info
         self.api_base_url = API_BASE_URL
@@ -96,6 +96,9 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         
         # 应用初始设置
         self._apply_initial_settings()
+        
+        # 在应用程序完全启动后，在后台线程中检查用户登录状态
+        QTimer.singleShot(500, self._check_login_status_in_background)
     
     def _init_ui(self):
         """初始化UI组件"""
@@ -691,6 +694,22 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
         # 分类选择完成后切换焦点到搜索按钮
         self.combo_category.activated.connect(self._on_category_selected)
     
+    def _check_login_status_in_background(self):
+        """在后台检查用户登录状态"""
+        try:
+            # 仅当有令牌时才检查，否则保持未登录状态
+            if self.token:
+                self.is_logged_in = self.user_service.is_logged_in()
+                # 如果登录状态为True但没有用户信息，则获取用户信息
+                if self.is_logged_in and not self.user_info:
+                    success, user_info = self.user_service.get_user_info()
+                    if success:
+                        self.user_info = user_info
+                # 更新登录按钮上的文本
+                self.update_user_button_text()
+        except Exception as e:
+            print(f"检查登录状态失败: {e}")
+
     def _apply_initial_settings(self):
         """应用初始设置"""
         # 设置滑块初始值
@@ -1118,6 +1137,9 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
                 self.btn_search.setIcon(self.icons['search'])
             except Exception as e:
                 print(f"Error updating button state: {e}")
+            
+            # 按评分从高到低排序搜索结果
+            self._sort_results('score', reverse=True)
     
     # -------------- 搜索结果处理 --------------
     def _on_match_found(self, video_path, timestamp_ms, score):
@@ -1585,7 +1607,6 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
 
 def main():
     """应用入口"""
-    import sys  # 确保sys模块在函数作用域内可用
     
     print("启动应用程序...")
     # 启用高DPI支持（针对PySide6 6.x版本的最佳实践）
@@ -1617,7 +1638,7 @@ def main():
         
         # 显式清理requests库的所有连接和线程池
         try:
-            import requests
+            
             # 关闭默认会话
             if hasattr(requests, '_default_session') and requests._default_session:
                 requests._default_session.close()
@@ -1634,7 +1655,7 @@ def main():
                     adapter.close()
             
             # 显式删除requests模块引用
-            import sys
+            
             if 'requests' in sys.modules:
                 del sys.modules['requests']
             
@@ -1642,16 +1663,7 @@ def main():
         except Exception as e:
             print(f"清理Requests库资源失败: {e}")
         
-        # 强制垃圾回收
-        try:
-            import gc
-            # 多次垃圾回收确保所有对象被清理
-            gc.collect()
-            gc.collect()
-            gc.collect()
-            print("垃圾回收完成")
-        except Exception as e:
-            print(f"垃圾回收失败: {e}")
+        
         
         print("应用程序已退出，所有资源已清理")
 

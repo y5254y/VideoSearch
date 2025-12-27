@@ -140,7 +140,7 @@ class Ui_RegisterWindow(object):
         # 邮箱输入框（可选）
         self.email_label = QLabel(self.centralwidget)
         self.email_label.setObjectName(u"email_label")
-        self.email_label.setText("邮箱（可选）")
+        self.email_label.setText("邮箱")
         self.email_label.setStyleSheet("font-size: 14px;")
         self.email_label.setMinimumHeight(25)
         self.email_label.setFixedWidth(80)
