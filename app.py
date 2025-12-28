@@ -325,7 +325,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     def _on_help_button_clicked(self):
         """帮助按钮点击事件处理"""
         # 打开帮助页面（暂时跳转到百度，后面可以修改为使用说明页面）
-        help_url = "https://www.baidu.com"
+        help_url = "hhttps://mp.weixin.qq.com/s/_SF4FnTjIW19Phx0dVsyxA"
         webbrowser.open(help_url)
     
     def _on_settings_button_clicked(self):
