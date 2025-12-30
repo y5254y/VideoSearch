@@ -139,7 +139,7 @@ VideoSearch是一款本地视频内容搜索工具，利用先进的AI模型（C
    - 大小：约6.5MB
    - 下载地址：[Ultralytics](https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.pt)
 
-### 模型放置位置
+### 模型放置位置（可选，如果没有提前下载，运行过程中会自动下载）
 
 - 直接将模型文件放在与`VideoSearch.exe`或`app.py`同一目录下
 - 程序将自动从当前目录加载模型
