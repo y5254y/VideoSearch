@@ -210,10 +210,13 @@ VideoSearch是一款本地视频内容搜索工具，利用先进的AI模型（C
 
 ## 联系方式
 
-- **作者**：VideoSearch开发团队
-- **QQ群**：451636267
-- **公众号**：[视频搜索工具]
-- **GitHub**：[https://github.com/yourusername/VideoSearch](https://github.com/yourusername/VideoSearch)
+- **作者qq**：168530836
+- **用户QQ群**：451636267
+- **公众号**：视频搜索工具
+  
+  <img src="resources/code.jpg" alt="公众号二维码" width="150">
+  
+- **GitHub**：[https://github.com/y5254y/VideoSearch](https://github.com/y5254y/VideoSearch)
 
 ## 常见问题
 
