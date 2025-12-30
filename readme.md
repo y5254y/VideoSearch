@@ -73,13 +73,13 @@ VideoSearch是一款本地视频内容搜索工具，利用先进的AI模型（C
 
 1. 克隆仓库
    ```bash
-git clone https://github.com/y5254y/VideoSearch.git
-cd VideoSearch
+   git clone https://github.com/y5254y/VideoSearch.git
+   cd VideoSearch
    ```
 
 2. 安装依赖
    ```bash
-pip install -r requirements.txt
+   pip install -r requirements.txt
    ```
 
 3. 下载模型文件（可选，如果没有提前下载，运行过程中会自动下载）
@@ -89,7 +89,7 @@ pip install -r requirements.txt
 
 4. 运行应用
    ```bash
-python app.py
+   python app.py
    ```
 
 ## 使用方法
@@ -150,12 +150,12 @@ python app.py
 
 1. 安装PyInstaller
    ```bash
-pip install pyinstaller
+   pip install pyinstaller
    ```
 
 2. 执行打包命令
    ```bash
-pyinstaller videosearch.spec
+   pyinstaller videosearch.spec
    ```
 
 3. 打包后文件
