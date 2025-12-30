@@ -5,3 +5,4 @@ opencv-python>=4.8.0
 pillow>=10.0.0
 PySide6>=6.10.0
 qt-material>=2.17
+requests>=2.31.0

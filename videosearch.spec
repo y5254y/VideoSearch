@@ -5,12 +5,15 @@ a = Analysis(
     ['app.py'],
     pathex=[],
     binaries=[],
-    datas=[('resources', 'resources'), ('styles', 'styles'), ('widgets', 'widgets')],
+    # 只包含必要的资源文件，排除模型文件
+    datas=[(d, d) for d in ['resources', 'styles', 'widgets'] if os.path.exists(d)],
     hiddenimports=['PySide6.QtMultimediaWidgets', 'PySide6.QtMultimedia', 'cv2', 'requests', 'qt_material'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets'],
+    excludes=['PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'clip-vit-base-patch32', 'yolov8n.pt'],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
     noarchive=False,
     optimize=0,
 )

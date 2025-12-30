@@ -325,7 +325,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     def _on_help_button_clicked(self):
         """帮助按钮点击事件处理"""
         # 打开帮助页面（暂时跳转到百度，后面可以修改为使用说明页面）
-        help_url = "hhttps://mp.weixin.qq.com/s/_SF4FnTjIW19Phx0dVsyxA"
+        help_url = "https://mp.weixin.qq.com/s/_SF4FnTjIW19Phx0dVsyxA"
         webbrowser.open(help_url)
     
     def _on_settings_button_clicked(self):
@@ -713,7 +713,7 @@ class VideoSearchApp(QMainWindow, Ui_MainWindow):
     def _apply_initial_settings(self):
         """应用初始设置"""
         # 设置滑块初始值
-        init_score = int(self.config.get('score', 85))
+        init_score = int(self.config.get('score', 60))
         self.slider.setValue(init_score)
         
         # 更新搜索模式UI

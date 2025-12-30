@@ -7,7 +7,7 @@ future internationalization work.
 
 TRANSLATIONS = {
     'zh': {
-        'title': '本地视频内容搜索',
+        'title': '本地视频内容搜索(用户QQ群451636267)',
         'select_videos': '选择视频',
         'selected_videos': '已选择的视频：',
         'select_images': '选择查询图片',

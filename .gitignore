@@ -267,3 +267,4 @@ paket-files/
 *.swp
 build/
 dist/
+clip-vit-base-patch32/

@@ -177,13 +177,15 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
 
     def play_at(self, path: str, position_ms: int):
         try:
-            # 从搜索结果的前1秒开始播放
-            adjusted_position = max(0, int(position_ms) - 1000)  # 减去1秒（1000毫秒）
+            # 从搜索结果的前2秒开始播放
+            adjusted_position = max(0, int(position_ms) - 2000)  # 减去2秒（2000毫秒）
             self._pending_position_ms = adjusted_position
+            self._start_position_ms = adjusted_position  # 保存起始位置用于计算播放时间
             self._should_pause_after_seek = True  # 设置标记，定位后需要暂停
             self._target_position_ms = int(position_ms)  # 保存目标位置
         except Exception:
             self._pending_position_ms = None
+            self._start_position_ms = None
             self._should_pause_after_seek = False
             self._target_position_ms = None
         
@@ -196,10 +198,6 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
         url = QUrl.fromLocalFile(path)
         self.player.setSource(url)
         self.player.play()
-        
-        # 增加一个计数器来确保视频至少播放几帧后再暂停
-        self._frame_counter = 0
-        self._max_frames = 3  # 确保至少播放3帧
     
     def play(self, path: str, position_ms: int):
         """兼容方法，用于处理来自搜索结果卡片的点击事件"""
@@ -263,10 +261,7 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                     pass
                 self._pending_position_ms = None
                 
-            # 在视频开始缓冲或播放时检查是否需要暂停
-            if status in (QMediaPlayer.MediaStatus.BufferedMedia, QMediaPlayer.MediaStatus.Buffered) and self._should_pause_after_seek:
-                self.player.pause()
-                self._should_pause_after_seek = False
+            # 移除了视频缓冲完成后立即暂停的逻辑，改为在_on_player_position_changed中通过帧计数控制暂停
 
             try:
                 if status in (QMediaPlayer.MediaStatus.LoadedMedia, QMediaPlayer.MediaStatus.BufferedMedia, QMediaPlayer.MediaStatus.Buffered):
@@ -287,13 +282,13 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 val = int((pos_ms / dur) * 1000)
                 self.playbackSlider.setValue(max(0, min(val, 1000)))
             
-            # 增加帧计数器，确保视频至少播放几帧
-            if hasattr(self, '_frame_counter') and self._should_pause_after_seek:
-                self._frame_counter += 1
+            # 如果需要在定位后暂停，检查是否已经播放了2秒
+            if self._should_pause_after_seek and self._target_position_ms is not None and hasattr(self, '_start_position_ms') and self._start_position_ms is not None:
+                # 计算已经播放的时间（当前位置 - 起始位置）
+                elapsed_time = pos_ms - self._start_position_ms
                 
-                # 如果计数器达到最大值或位置接近目标位置，开始准备暂停
-                if self._frame_counter >= self._max_frames or (self._target_position_ms is not None and abs(pos_ms - self._target_position_ms) <= 150):
-                    # 直接暂停，不再使用定时器，避免不必要的延迟和跳帧
+                # 如果已经播放了约2秒，或者接近目标位置，暂停视频
+                if elapsed_time >= 2000 or abs(pos_ms - self._target_position_ms) <= 150:
                     self._safe_pause()
         except Exception:
             pass
@@ -399,10 +394,9 @@ class PlayerWidget(QWidget, Ui_PlayerWidget):
                 if hasattr(self, '_position_check_timer') and self._position_check_timer.isActive():
                     self._position_check_timer.stop()
                     delattr(self, '_position_check_timer')
-                if hasattr(self, '_frame_counter'):
-                    delattr(self, '_frame_counter')
-                if hasattr(self, '_max_frames'):
-                    delattr(self, '_max_frames')
+                # 清理起始位置变量
+                if hasattr(self, '_start_position_ms'):
+                    delattr(self, '_start_position_ms')
         except Exception:
             pass
 

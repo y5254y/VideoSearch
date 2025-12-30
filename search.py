@@ -51,15 +51,33 @@ class AISearchEngine:
                 pass
 
     def _ensure_clip_loaded(self):
-        """Lazy load CLIP model and processor."""
+        """Lazy load CLIP model and processor, supporting offline usage."""
         if self._clip_model is None:
 
-            # Send model download message
-            self._send_message('downloading_model')
             
             self._device = "cuda" if torch.cuda.is_available() else "cpu"
-            self._clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-            self._clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+            
+            # 尝试从本地加载模型，支持离线使用
+            try:
+                # 1. 优先从当前目录加载模型，方便用户将exe和模型一起打包
+                # 使用动态方式构建路径，避免PyInstaller静态分析检测
+                local_model_path = os.path.join(".", "clip-vit-base-patch32")
+                if os.path.exists(local_model_path):
+                    # Send model loading message
+                    self._send_message('loading_model')
+                    self._clip_model = CLIPModel.from_pretrained(local_model_path)
+                    self._clip_processor = CLIPProcessor.from_pretrained(local_model_path)
+                else:
+                    # 2. 本地模型不存在，从Hugging Face下载
+                    # Send model download message
+                    self._send_message('downloading_model')
+                    self._clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+                    self._clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+            except Exception as e:
+                # 如果加载失败，发送错误消息
+                self._send_message('model_load_error')
+                raise e
+            
             self._clip_model.to(self._device)
             self._clip_model.eval()
 
@@ -70,7 +88,9 @@ class AISearchEngine:
             # Send model download message
             self._send_message('downloading_model')
             
-            self._yolo_model = YOLO("yolov8n.pt")
+            # 从当前目录加载或下载YOLO模型，方便用户将exe和模型一起打包
+            # 使用动态方式构建路径，避免PyInstaller静态分析检测
+            self._yolo_model = YOLO(os.path.join(".", "yolov8n.pt"))
     
     def get_supported_categories(self):
         """Get all supported categories from YOLO model.
