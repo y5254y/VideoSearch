@@ -56,7 +56,7 @@ VideoSearch是一款本地视频内容搜索工具，利用先进的AI模型（C
 
 ### 选项1：使用预编译的EXE文件
 
-1. 从[Releases](https://github.com/yourusername/VideoSearch/releases)页面下载最新的`VideoSearch.zip`
+1. 从[Releases](https://github.com/y5254y/VideoSearch/releases)页面下载最新的`VideoSearch.zip`
 2. 解压到任意目录
 3. 将模型文件放入同一目录：
    - `clip-vit-base-patch32` 文件夹
@@ -73,7 +73,7 @@ VideoSearch是一款本地视频内容搜索工具，利用先进的AI模型（C
 
 1. 克隆仓库
    ```bash
-git clone https://github.com/yourusername/VideoSearch.git
+git clone https://github.com/y5254y/VideoSearch.git
 cd VideoSearch
    ```
 
