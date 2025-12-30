@@ -45,6 +45,16 @@ VideoSearch是一款本地视频内容搜索工具，利用先进的AI模型（C
 - 自定义主题样式
 - 清晰的搜索结果展示
 
+## 界面截图
+
+### 主界面
+
+<img src="resources/1.png" alt="VideoSearch主界面" width="800">
+
+
+
+<img src="resources/2.png" alt="VideoSearch搜索结果" width="800">
+
 ## 技术栈
 
 - **框架**：PySide6 (GUI)
